@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numerology Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Patrick Hand', cursive;
+      background: linear-gradient(to bottom right, #ffecd2, #fcb69f);
+      color: #333;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #6a0572;
+      font-size: 3em;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 10px;
+    }
+
+    button {
+      background-color: #f6c90e;
+      color: #000;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .cell {
+      width: 60px;
+      height: 60px;
+      background-color: #fdf1e7;
+      border: 2px solid #333;
+      border-radius: 10px;
+      font-size: 1.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .prediction {
+      background-color: #fff3cd;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Numerology Calculator</h1>
+  <p>Enter your Full Name:</p>
+  <input type="text" id="fullname" placeholder="e.g. John Doe">
+  <p>Enter your Date of Birth (DDMMYYYY):</p>
+  <input type="text" id="dob" maxlength="8" placeholder="e.g. 25031999">
+  <button onclick="calculateNumerology()">Calculate</button>
+
+  <div id="gridContainer" class="grid"></div>
+  <div id="prediction" class="prediction"></div>
+
+  <script>
+    function reduceToSingleDigit(num) {
+      while (num > 9 && num !== 11 && num !== 22 && num !== 33) {
+        num = num.toString().split('').reduce((a, b) => a + parseInt(b), 0);
+      }
+      return num;
+    }
+
+    function letterValue(char) {
+      const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+      return alphabet.indexOf(char.toLowerCase()) + 1;
+    }
+
+    function getHeartNumber(name) {
+      const vowels = 'aeiou';
+      const sum = name.toLowerCase().split('').filter(ch => vowels.includes(ch)).map(letterValue).reduce((a, b) => a + b, 0);
+      return reduceToSingleDigit(sum);
+    }
+
+    function getPersonalityNumber(name) {
+      const vowels = 'aeiou';
+      const sum = name.toLowerCase().split('').filter(ch => !vowels.includes(ch) && /[a-z]/.test(ch)).map(letterValue).reduce((a, b) => a + b, 0);
+      return reduceToSingleDigit(sum);
+    }
+
+    function getLifeNumber(dob) {
+      const sum = dob.split('').reduce((a, b) => a + parseInt(b), 0);
+      return reduceToSingleDigit(sum);
+    }
+
+    function getDestinyNumber(name) {
+      const sum = name.toLowerCase().replace(/[^a-z]/g, '').split('').map(letterValue).reduce((a, b) => a + b, 0);
+      return reduceToSingleDigit(sum);
+    }
+
+    function getBirthdayNumber(dob) {
+      return reduceToSingleDigit(parseInt(dob.slice(0, 2)));
+    }
+
+    function getMarriageYears(dob) {
+      const birthYear = parseInt(dob.slice(4));
+      return [birthYear + 24, birthYear + 28, birthYear + 32];
+    }
+
+    function getKarmicDebtNumbers(name, dob) {
+      const allNums = [getLifeNumber(dob), getDestinyNumber(name), getHeartNumber(name)];
+      return allNums.filter(n => [13, 14, 16, 19].includes(n));
+    }
+
+    function getPersonalYearNumber(dob) {
+      const today = new Date();
+      const year = today.getFullYear().toString();
+      const dobMonthDay = dob.slice(0, 4);
+      const total = dobMonthDay + year;
+      const sum = total.split('').reduce((a, b) => a + parseInt(b), 0);
+      return reduceToSingleDigit(sum);
+    }
+
+    function getPersonalMonthNumber(personalYear) {
+      const month = new Date().getMonth() + 1;
+      return reduceToSingleDigit(personalYear + month);
+    }
+
+    function getPersonalDayNumber(personalMonth) {
+      const day = new Date().getDate();
+      return reduceToSingleDigit(personalMonth + day);
+    }
+
+    function getDreamNumber(name) {
+      return getHeartNumber(name);
+    }
+
+    function getPlanetForNumber(num) {
+      const planets = {
+        1: 'Sun', 2: 'Moon', 3: 'Jupiter', 4: 'Rahu', 5: 'Mercury', 6: 'Venus',
+        7: 'Ketu', 8: 'Saturn', 9: 'Mars'
+      };
+      return planets[num] || 'Unknown';
+    }
+
+    function getPredictionText(number) {
+      const meanings = {
+        1: "You are a born leader. Your path is to initiate, create, and inspire. Challenges may include stubbornness, but your potential to lead is unmatched.",
+        2: "Harmony is your goal. You excel in partnerships and diplomacy. Sensitivity can make you emotional, but you bring people together.",
+        3: "Creativity flows through you. You are here to express joy, art, and communication. At times, you must guard against superficiality.",
+        4: "You build strong foundations. Stability and hard work define your journey. Avoid being overly rigid and embrace flexibility.",
+        5: "Adventure is your theme. Embrace freedom and change, but be mindful of restlessness and impulsivity. You bring excitement to others.",
+        6: "Service, responsibility, and love drive you. Family and harmony are key. Be careful not to overextend yourself in caregiving.",
+        7: "You are a seeker of truth. Introspection, spirituality, and wisdom define you. Loneliness may occur, but solitude gives you power.",
+        8: "You have the power to achieve material success. Authority and responsibility follow you. Use power wisely to avoid imbalance.",
+        9: "You are a humanitarian. Compassion, tolerance, and global awareness are your traits. Letting go is part of your path.",
+        11: "A master of spiritual insight. Intuition, enlightenment, and inspiration are your strengths. Balance emotions to reach your full potential.",
+        22: "The master builder. You can manifest big dreams into reality. With vision and discipline, you can create lasting change.",
+        33: "The master teacher. Love, healing, and sacrifice are your gifts. Lead by compassionate example for highest fulfillment."
+      };
+      return meanings[number] || "Unique potential and journey.";
+    }
+
+    function calculateNumerology() {
+      const dob = document.getElementById("dob").value;
+      const name = document.getElementById("fullname").value.trim();
+
+      if (dob.length !== 8 || isNaN(dob) || name === '') {
+        alert("Please enter a valid name and DOB in DDMMYYYY format.");
+        return;
+      }
+
+      const numbers = dob.split("");
+      const gridNumbers = {};
+      for (let i = 1; i <= 9; i++) gridNumbers[i] = 0;
+      numbers.forEach(num => {
+        const digit = parseInt(num);
+        if (digit !== 0) gridNumbers[digit]++;
+      });
+
+      const loShuOrder = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+      const gridContainer = document.getElementById("gridContainer");
+      gridContainer.innerHTML = "";
+      loShuOrder.forEach(num => {
+        const div = document.createElement("div");
+        div.className = "cell";
+        div.textContent = gridNumbers[num] > 0 ? num.toString().repeat(gridNumbers[num]) : "";
+        gridContainer.appendChild(div);
+      });
+
+      const heart = getHeartNumber(name);
+      const life = getLifeNumber(dob);
+      const destiny = getDestinyNumber(name);
+      const personality = getPersonalityNumber(name);
+      const birthday = getBirthdayNumber(dob);
+      const marriageYears = getMarriageYears(dob);
+      const karmicDebts = getKarmicDebtNumbers(name, dob);
+      const personalYear = getPersonalYearNumber(dob);
+      const personalMonth = getPersonalMonthNumber(personalYear);
+      const personalDay = getPersonalDayNumber(personalMonth);
+      const dreamNumber = getDreamNumber(name);
+      const planet = getPlanetForNumber(life);
+
+      const predictionBox = document.getElementById("prediction");
+      predictionBox.innerHTML = `
+        <h3>Hello, ${name}!</h3>
+        <p><strong>Life Path Number:</strong> ${life} - ${getPredictionText(life)}</p>
+        <p><strong>Destiny (Expression) Number:</strong> ${destiny} - ${getPredictionText(destiny)}</p>
+        <p><strong>Heart's Desire (Soul Urge) Number:</strong> ${heart} - ${getPredictionText(heart)}</p>
+        <p><strong>Personality Number:</strong> ${personality} - ${getPredictionText(personality)}</p>
+        <p><strong>Birthday Number:</strong> ${birthday} - ${getPredictionText(birthday)}</p>
+        <p><strong>Dream Number:</strong> ${dreamNumber} - ${getPredictionText(dreamNumber)}</p>
+        <p><strong>Personal Year Number:</strong> ${personalYear} - ${getPredictionText(personalYear)}</p>
+        <p><strong>Personal Month Number:</strong> ${personalMonth} - ${getPredictionText(personalMonth)}</p>
+        <p><strong>Personal Day Number:</strong> ${personalDay} - ${getPredictionText(personalDay)}</p>
+        <p><strong>Karmic Debt Numbers:</strong> ${karmicDebts.length > 0 ? karmicDebts.join(', ') : 'None'}</p>
+        <p><strong>Suggested Marriage Years:</strong> ${marriageYears.join(', ')}</p>
+        <p><strong>Associated Planet (Life Path):</strong> ${planet}</p>
+        <p><strong>Lo Shu Grid:</strong> Based on DOB digits</p>
+      `;
+    }
+  </script>
+</body>
+</html>
