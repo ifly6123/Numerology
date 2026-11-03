@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-overview">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html" class="active">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Welcome Back, <span id="nameSpan"></span></h1>
+        <p>Here's a snapshot of everything your numbers say. Tap any card to go deeper.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    document.getElementById('nameSpan').textContent = p.fullName.split(' ')[0];
+    const el = document.getElementById('app');
+
+    // --- Search everything ---
+    const searchPanel = document.createElement('div');
+    searchPanel.className = 'panel';
+    searchPanel.innerHTML = `
+        <input type="text" id="searchBox" placeholder="Search the whole app — a number, a symptom, a career, a term..." aria-label="Search the app"
+            style="width:100%; padding:0.85rem 1rem; border:1px solid var(--border-color); border-radius:10px; font-size:1rem; background:var(--surface-color); color:var(--text-main);">
+        <div id="searchResults" aria-live="polite" style="margin-top:1rem;"></div>
+    `;
+    el.appendChild(searchPanel);
+    const searchIdx = buildSearchIndex();
+    document.getElementById('searchBox').addEventListener('input', function() {
+        const box = document.getElementById('searchResults');
+        const results = searchIndex(searchIdx, this.value);
+        if (!this.value.trim()) { box.innerHTML = ''; return; }
+        if (!results.length) { box.innerHTML = '<p class="sub">No matches. Try a different word.</p>'; return; }
+        box.innerHTML = results.map(r => {
+            if (r.popupKey) {
+                return `<div class="elem-card"><div class="elem-card-top"><div class="elem-title" style="font-size:0.95rem;">${r.title}</div><span class="trait-band level-Moderate">${r.type}</span></div><p class="trait-desc" style="margin-top:0.4rem;">${r.snippet.slice(0, 160)}${r.snippet.length > 160 ? '…' : ''}</p></div>`;
+            }
+            return `<a href="${r.link}" class="elem-card" style="display:block; text-decoration:none; color:inherit;"><div class="elem-card-top"><div class="elem-title" style="font-size:0.95rem;">${r.title}</div><span class="trait-band level-Moderate">${r.type}</span></div><p class="trait-desc" style="margin-top:0.4rem;">${r.snippet.slice(0, 160)}${r.snippet.length > 160 ? '…' : ''}</p></a>`;
+        }).join('');
+    });
+
+    // --- Did You Know? ---
+    const tipPanel = document.createElement('div');
+    tipPanel.className = 'panel';
+    tipPanel.style.borderLeft = '4px solid var(--accent-gold)';
+    tipPanel.innerHTML = `<p style="font-weight:700; margin-bottom:0.3rem;">💡 Did You Know?</p><p class="trait-desc">${pickDailyTip()}</p>`;
+    el.appendChild(tipPanel);
+
+    const today = new Date();
+    const py = personalYear(p.month, p.day, today.getFullYear());
+    const pm = personalMonth(py, today.getMonth() + 1);
+    const pd = personalDayNum(pm, today.getDate());
+    const topTrait = p.traits && p.traits.length ? [...p.traits].sort((a,b) => b.pct - a.pct)[0] : null;
+    const wellness = computeWellness(p.gridCounts, safeDigit(p.mulank));
+    const topWellness = [...wellness].sort((a,b) => b.pct - a.pct)[0];
+    const entPct = computeEntrepreneurScore(p.gridCounts, safeDigit(p.mulank), safeDigit(p.bhagyank));
+
+    const cardsPanel = document.createElement('div');
+    cardsPanel.className = 'panel';
+    cardsPanel.innerHTML = `<div class="dash-grid">
+        <a class="dash-card" href="overview.html">
+            <div class="dash-title">Numerology Profile</div>
+            <div class="dash-value">${p.mulank} / ${p.bhagyank}</div>
+            <div class="dash-sub">Birth Number / Life Path Number</div>
+        </a>
+        <a class="dash-card" href="personality.html">
+            <div class="dash-title">Personality Profile</div>
+            <div class="dash-value">${topTrait ? topTrait.pct + '%' : '—'}</div>
+            <div class="dash-sub">${topTrait ? topTrait.label + ' (your strongest trait)' : 'View your trait breakdown'}</div>
+        </a>
+        <a class="dash-card" href="career.html">
+            <div class="dash-title">Career Fit</div>
+            <div class="dash-value">${entPct}%</div>
+            <div class="dash-sub">Pull toward running your own thing</div>
+        </a>
+        <a class="dash-card" href="compatibility.html">
+            <div class="dash-title">Compatibility</div>
+            <div class="dash-value">Kua ${p.kua}</div>
+            <div class="dash-sub">Check a partner, friend, or family member</div>
+        </a>
+        <a class="dash-card" href="life-path.html">
+            <div class="dash-title">Life Path Timeline</div>
+            <div class="dash-value">PY ${py}</div>
+            <div class="dash-sub">Explore your 31-year calendar</div>
+        </a>
+        <a class="dash-card" href="health.html">
+            <div class="dash-title">Health & Body</div>
+            <div class="dash-value">${topWellness.pct}%</div>
+            <div class="dash-sub">${topWellness.label}</div>
+        </a>
+        <a class="dash-card" href="rhythms.html">
+            <div class="dash-title">Daily Rhythms</div>
+            <div class="dash-value">${p.mulank}</div>
+            <div class="dash-sub">See your best hours of the day</div>
+        </a>
+        <a class="dash-card" href="daily.html">
+            <div class="dash-title">Today's Guidance</div>
+            <div class="dash-value">PD ${pd}</div>
+            <div class="dash-sub">Open today's full calendar reading</div>
+        </a>
+    </div>`;
+    el.appendChild(cardsPanel);
+
+    // Quick actions
+    const actionsPanel = document.createElement('div');
+    actionsPanel.className = 'panel';
+    actionsPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Quick Actions</h2>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+            <a class="btn small" href="quiz.html">Take The Self-Check Quiz</a>
+            <a class="btn small" href="family.html">Add A Family Member</a>
+            <a class="btn small gold" href="mydata.html">Back Up My Data</a>
+        </div>
+    `;
+    el.appendChild(actionsPanel);
+
+    // First-visit tour
+    renderTour();
+}
+</script>
+</body>
+</html>

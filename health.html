@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health & Body</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-health">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html" class="active">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your <span>Health & Body</span> Notes</h1>
+        <p>A light-touch wellness lens based on your numbers. Not medical advice.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+    const notice = document.createElement('div');
+    notice.className = 'notice';
+    notice.innerHTML = "<strong>Please read this first:</strong> Everything on this page is for general reflection only, based on numbers, not on your actual body. It is not a diagnosis, and it should never replace advice from a real doctor. If something feels physically wrong, please see a medical professional rather than relying on this page.";
+    el.appendChild(notice);
+
+    // --- Wellness score bars (same style as the Personality page) ---
+    const wellness = computeWellness(p.gridCounts, safeDigit(p.mulank));
+    const wellPanel = document.createElement('div');
+    wellPanel.className = 'panel';
+    let wellHTML = `<h2 style="margin-bottom:1.2rem;">Your General Wellness Pattern</h2>
+        <p class="sub" style="margin-top:-0.6rem; margin-bottom:1.4rem;">These percentages come from the same number-based method as your Personality page — a tendency, not a test result.</p>`;
+    wellness.forEach(w => {
+        const bandText = { Low: 'Low', Moderate: 'Moderate', High: 'High', VeryHigh: 'Very High' }[w.band];
+        const line = (WELLNESS_LINES[w.key] && WELLNESS_LINES[w.key][w.band]) || '';
+        wellHTML += `<div class="trait-row">
+            <div class="trait-head">
+                <div class="trait-name">${w.label} <span class="trait-band level-${w.band}">${bandText}</span></div>
+                <div class="trait-pct">${w.pct}%</div>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${w.pct}%;"></div></div>
+            <div class="trait-desc">${line}</div>
+        </div>`;
+    });
+    wellPanel.innerHTML = wellHTML;
+    el.appendChild(wellPanel);
+
+    const mulankBase = safeDigit(p.mulank);
+    let dosha = 'Kapha';
+    if ([1,3,9].includes(mulankBase)) dosha = 'Pitta';
+    if ([5,7].includes(mulankBase)) dosha = 'Vata';
+    const doshaInfo = DOSHA_SIMPLE[dosha];
+    const med = MEDICAL_SIMPLE[mulankBase] || MEDICAL_SIMPLE[1];
+
+    const doshaPanel = document.createElement('div');
+    doshaPanel.className = 'panel';
+    doshaPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Your Leading Body Type: ${doshaInfo.title}</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('dosha')">i</button></div>
+        <div class="elem-desc" style="margin-top:1rem;">${doshaInfo.text}</div>
+        <div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-title">Physical Signs</div>
+            <div class="elem-desc">${doshaInfo.physicalSigns}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">Emotional Signs</div>
+            <div class="elem-desc">${doshaInfo.emotionalSigns}</div>
+        </div>
+        <div class="elem-card" style="border-left:4px solid #ef4444;">
+            <div class="elem-title">Signs You May Be Out Of Balance</div>
+            <div class="elem-desc">${doshaInfo.imbalanceSigns}</div>
+        </div>
+        <p class="trait-desc" style="margin-top:0.8rem;"><strong>What tends to help:</strong> ${doshaInfo.remedy}</p>
+        ${saveButtonHTML(doshaInfo.title, doshaInfo.text + ' What tends to help: ' + doshaInfo.remedy, 'health.html')}`;
+    el.appendChild(doshaPanel);
+
+    const medPanel = document.createElement('div');
+    medPanel.className = 'panel';
+    medPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Areas Worth Extra Care</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('medical')">i</button></div>
+        <div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-title">Areas To Keep An Eye On</div>
+            <div class="elem-desc">${med.organs}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">General Habit Tip</div>
+            <div class="elem-desc">${med.diet}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">Exercise Style That Suits You</div>
+            <div class="elem-desc">${med.exercise}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">When To Get Checked</div>
+            <div class="elem-desc">${med.checkup}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">How Stress Tends To Show Up For You</div>
+            <div class="elem-desc">${med.mentalTendency}</div>
+        </div>`;
+    el.appendChild(medPanel);
+
+    // --- Detailed, specific health patterns (not just organ areas) ---
+    const issues = HEALTH_ISSUES_DETAILED[mulankBase] || HEALTH_ISSUES_DETAILED[1];
+    const issuesPanel = document.createElement('div');
+    issuesPanel.className = 'panel';
+    issuesPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Specific Patterns Linked To Your Number</h2>
+        <p class="sub" style="margin-bottom:1rem;">These are common tendencies for your number, not something you necessarily have. Use this as a watch-list, not a checklist of symptoms.</p>
+        <div class="elem-card"><ul style="padding-left:1.3rem; line-height:2; color:var(--text-main);">
+            ${issues.map(i => `<li>${i}</li>`).join('')}
+        </ul></div>`;
+    el.appendChild(issuesPanel);
+
+    // --- Self-care checklist ---
+    const checklist = SELF_CARE_CHECKLIST[mulankBase] || SELF_CARE_CHECKLIST[1];
+    const checklistPanel = document.createElement('div');
+    checklistPanel.className = 'panel';
+    checklistPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">A Simple Self-Care Checklist For You</h2>
+        <div class="elem-card"><ul style="padding-left:1.3rem; line-height:2; color:var(--text-main);">
+            ${checklist.map(i => `<li>${i}</li>`).join('')}
+        </ul></div>`;
+    el.appendChild(checklistPanel);
+
+    // Biological grid deficiencies (missing numbers)
+    const missing = [1,2,3,4,5,6,7,8,9].filter(n => !(p.gridCounts[n] > 0));
+    const defPanel = document.createElement('div');
+    defPanel.className = 'panel';
+    let defHTML = `<h2 style="margin-bottom:1rem;">Areas That May Need A Bit More Support</h2>`;
+    if (missing.length === 0) {
+        defHTML += `<p class="elem-desc">Your chart has every number present — a well-rounded, balanced spread.</p>`;
+    } else {
+        defHTML += missing.map(n => `<div class="elem-card"><div class="elem-title">Missing ${n}</div><div class="elem-desc">${MEDICAL_DEFICIENCY_SIMPLE[n]}</div></div>`).join('');
+    }
+    defPanel.innerHTML = defHTML;
+    el.appendChild(defPanel);
+
+    // --- Symptom-first lookup: start from a concern instead of a number ---
+    const symptomPanel = document.createElement('div');
+    symptomPanel.className = 'panel';
+    let symptomHTML = `<h2 style="margin-bottom:0.4rem;">Have A Specific Concern?</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Instead of reading number-first, start from what's actually bothering you.</p>
+        <select id="symptomSelect" style="width:100%; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:8px; margin-bottom:1rem; background:var(--surface-color); color:var(--text-main);">
+            <option value="">Choose a concern...</option>`;
+    SYMPTOM_MAP.forEach(s => { symptomHTML += `<option value="${s.key}">${s.label}</option>`; });
+    symptomHTML += `</select><div id="symptomResult" aria-live="polite"></div>`;
+    symptomPanel.innerHTML = symptomHTML;
+    el.appendChild(symptomPanel);
+
+    document.getElementById('symptomSelect').addEventListener('change', function() {
+        const box = document.getElementById('symptomResult');
+        if (!this.value) { box.innerHTML = ''; return; }
+        const result = lookupSymptom(this.value, p);
+        box.innerHTML = `<div class="elem-card">
+            <div class="elem-title">${result.label}</div>
+            <div class="elem-desc">${result.note}</div>
+            <p class="trait-desc" style="margin-top:0.6rem;"><strong>For you specifically:</strong> ${result.verdict}</p>
+            ${saveButtonHTML(result.label + ' (Symptom Lookup)', result.note + ' ' + result.verdict, 'health.html')}
+        </div>`;
+    });
+
+    const bottomNotice = document.createElement('div');
+    bottomNotice.className = 'notice';
+    bottomNotice.textContent = "Reminder: this page reflects patterns in numbers, not test results from your body. Please treat it as a light, general prompt for self-care — always check with a doctor for real symptoms.";
+    el.appendChild(bottomNotice);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Guidance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-daily">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html" class="active">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Today's <span>Guidance</span></h1>
+        <p id="dateLine"></p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const today = new Date();
+    document.getElementById('dateLine').textContent = today.toDateString();
+
+    const py = personalYear(p.month, p.day, today.getFullYear());
+    const pm = personalMonth(py, today.getMonth() + 1);
+    const pd = personalDayNum(pm, today.getDate());
+    const el = document.getElementById('app');
+
+    // --- Significance panel: what PY / PM / PD actually mean, right now ---
+    const sigPanel = document.createElement('div');
+    sigPanel.className = 'panel';
+    sigPanel.innerHTML = `
+        <h2 style="margin-bottom:0.3rem;">Today At A Glance</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Three numbers stack together to describe any date: a big-picture Year, a medium-range Month, and a specific Day.</p>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Year <span class="num">${py}</span></div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalYearNum')">i</button></div>
+            <div class="elem-desc">Right now, ${YEAR_ENERGY[py]}.</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Month <span class="num">${pm}</span></div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalMonthNum')">i</button></div>
+            <div class="elem-desc">${MONTH_ENERGY[pm]}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Day <span class="num">${pd}</span></div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalDay')">i</button></div>
+            <div class="elem-desc">${PD_CORE[pd]}</div>
+            <button class="btn small" style="margin-top:0.8rem;" onclick="openDayModal(${today.getFullYear()}, ${today.getMonth()+1}, ${today.getDate()})">See Today's Full Reading</button>
+        </div>
+    `;
+    el.appendChild(sigPanel);
+
+    // --- Journaling Prompt ---
+    const journal = generateJournalPrompt(p, today);
+    if (journal) {
+        const journalPanel = document.createElement('div');
+        journalPanel.className = 'panel';
+        journalPanel.innerHTML = `
+            <h2 style="margin-bottom:0.3rem;">Today's Reflection Prompt</h2>
+            <p class="sub" style="margin-bottom:1rem;">Picked from your ${journal.traitLabel} trait (${journal.traitPct}%), rotating daily so it doesn't repeat.</p>
+            <div class="elem-card">
+                <div class="elem-title">${journal.prompt}</div>
+                <textarea id="journalAnswer" rows="4" style="width:100%; margin-top:0.8rem; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:8px; font-family:inherit; font-size:0.95rem; background:var(--surface-color); color:var(--text-main);" placeholder="Write a few thoughts here (optional)..."></textarea>
+                <button class="btn small" id="journalSaveBtn" style="margin-top:0.8rem;">Save My Reflection</button>
+                <p id="journalMsg" style="margin-top:0.6rem; font-size:0.85rem; color:var(--text-light);"></p>
+            </div>
+        `;
+        el.appendChild(journalPanel);
+        document.getElementById('journalSaveBtn').addEventListener('click', function() {
+            const answer = document.getElementById('journalAnswer').value.trim();
+            const msg = document.getElementById('journalMsg');
+            if (!answer) { msg.textContent = 'Write something first, then save it.'; return; }
+            saveNote('Reflection: ' + journal.prompt, answer, 'daily.html');
+            msg.textContent = 'Saved to My Notebook.';
+        });
+    }
+
+    // --- Real Sun–Sat calendar, navigable, click any date for its own reading ---
+    let calYear = today.getFullYear();
+    let calMonth = today.getMonth() + 1;
+    const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+    const calPanel = document.createElement('div');
+    calPanel.className = 'panel';
+    calPanel.innerHTML = `
+        <div class="cal-nav">
+            <button class="cal-nav-btn" id="calPrev">‹ Prev</button>
+            <div class="cal-nav-label" id="calLabel"></div>
+            <button class="cal-nav-btn" id="calNext">Next ›</button>
+        </div>
+        <div id="calBody" aria-live="polite"></div>
+        <div class="cal-legend">
+            <span><i style="background:#10b981;"></i> Great fit</span>
+            <span><i style="background:#f59e0b;"></i> Neutral</span>
+            <span><i style="background:#ef4444;"></i> Needs care</span>
+            <span><i style="background:transparent; border:2px solid var(--accent-purple);"></i> Today</span>
+        </div>
+        <p class="trait-desc" style="margin-top:1rem;">Tap any date — past, today, or future — to see its own detailed reading, not just today's.</p>
+    `;
+    el.appendChild(calPanel);
+
+    function renderCalendar() {
+        document.getElementById('calLabel').textContent = `${MONTH_NAMES[calMonth-1]} ${calYear}`;
+        const body = document.getElementById('calBody');
+        body.innerHTML = buildCalendarHTML(calYear, calMonth, p);
+        bindCalendarClicks(body);
+    }
+    document.getElementById('calPrev').addEventListener('click', function() {
+        calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; }
+        renderCalendar();
+    });
+    document.getElementById('calNext').addEventListener('click', function() {
+        calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; }
+        renderCalendar();
+    });
+    renderCalendar();
+
+    // --- 10-point daily horoscope, now pulling from the same dynamic layers ---
+    const has = n => p.gridCounts[n] > 0;
+    const planeCheck = (a,b,c) => (has(a)&&has(b)&&has(c)) ? 'strong' : (!has(a)&&!has(b)&&!has(c)) ? 'weak' : 'mixed';
+    const missingNum = [1,2,3,4,5,6,7,8,9].find(n => !has(n)) || 5;
+    const todayPred = buildDatePrediction(today.getDate(), today.getMonth()+1, today.getFullYear(), p.day, p.month);
+
+    const ACTION_BY_PD = {1:"speak up",2:"trust your gut",3:"brainstorm ideas",4:"stick to a plan",5:"adapt quickly",6:"show affection",7:"look at the facts",8:"manage resources well",9:"think big"};
+    const WEAK_BY_NUM = {1:"struggle to voice your needs",2:"miss subtle emotional hints",3:"doubt your own ideas",4:"resist routine",5:"feel a bit aimless",6:"hide your feelings",7:"be overly doubtful",8:"mismanage money",9:"miss the big picture"};
+
+    const points = [];
+    points.push(["The Big Picture", todayPred.yearLine.charAt(0).toUpperCase() + todayPred.yearLine.slice(1) + ". " + todayPred.monthLine]);
+    points.push(["Today's Rhythm", todayPred.weekdayLine]);
+    points.push(["Today's Focus", todayPred.core]);
+    points.push(["Work & Action", `Your action-related numbers look ${planeCheck(2,7,6)} today. ${planeCheck(2,7,6)==='strong' ? "You can move forward boldly." : "Pace yourself and avoid rushing."}`]);
+    points.push(["Heart & Feelings", `Emotionally, your numbers look ${planeCheck(3,5,7)} today. ${planeCheck(3,5,7)==='strong' ? "Trust what you're feeling." : "Think a little before reacting."}`]);
+    points.push(["Money Matters", `Financially, your numbers look ${planeCheck(8,1,6)} today. ${planeCheck(8,1,6)==='strong' ? "Your instincts on spending are solid." : "Be a little more careful with money."}`]);
+    points.push([has(pd) ? "Your Strength Today" : "Room To Grow", has(pd) ? `You naturally have a ${pd} in your chart, so your ability to ${ACTION_BY_PD[pd]} is extra strong today.` : `You don't have a ${pd} in your chart, so today may ask you to ${ACTION_BY_PD[pd]} even though it feels less natural.`]);
+    points.push(["Watch Out For", `You're missing a ${missingNum} in your chart, which can mean you sometimes ${WEAK_BY_NUM[missingNum]}. Just stay aware of it today.`]);
+    points.push(["About This Date", todayPred.dayOfMonthLine]);
+    points.push(["Final Note", todayPred.advice]);
+
+    const horoPanel = document.createElement('div');
+    horoPanel.className = 'panel';
+    let horoHTML = `<h2 style="margin-bottom:0.3rem;">9 Points For Today</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">This list is generated from today's specific weekday, calendar date, month, and year — not just your Personal Day number — so it reads differently most days, even on repeat Personal Days.</p>`;
+    points.forEach(([title, text], i) => {
+        horoHTML += `<div class="elem-card"><div class="elem-title">${i+1}. ${title}</div><div class="elem-desc">${text}</div></div>`;
+    });
+    horoPanel.innerHTML = horoHTML;
+    el.appendChild(horoPanel);
+
+    // --- 9-year purge alert ---
+    if (py === 9) {
+        const purgePanel = document.createElement('div');
+        purgePanel.className = 'panel';
+        purgePanel.innerHTML = `<div class="elem-card-top"><h2 style="margin:0;">You're In A Closing-Out Year</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('purgeAlert')">i</button></div>
+            <p class="elem-desc" style="margin-top:1rem;">This is traditionally a year for tidying up loose ends before a new 9-year cycle starts. A few things worth considering before the year ends:</p>
+            <ul style="padding-left:1.3rem; margin-top:0.8rem; color:var(--text-main); line-height:1.9;">
+                <li>Close out any lingering disputes, even if it means compromising.</li>
+                <li>Step back from relationships or commitments that no longer serve you.</li>
+                <li>Clear physical or digital clutter you've been holding onto.</li>
+                <li>Hold off on major long-term commitments until the new cycle begins.</li>
+            </ul>`;
+        el.appendChild(purgePanel);
+    }
+}
+</script>
+</body>
+</html>

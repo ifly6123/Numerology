@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Data</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-life">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html" class="active">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>My <span>Data</span></h1>
+        <p>Everything here lives only in this browser. Back it up so you never lose it.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+
+    // --- Backup / Restore ---
+    const backupPanel = document.createElement('div');
+    backupPanel.className = 'panel';
+    backupPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Backup & Restore</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Since nothing is stored on a server, clearing your browser data would erase everything. Download a backup file now and then, just in case.</p>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+            <button class="btn small gold" id="exportBtn">Download My Backup</button>
+        </div>
+        <div style="margin-top:1.2rem; display:flex; gap:0.8rem; flex-wrap:wrap; align-items:center;">
+            <input type="file" id="importFile" accept="application/json">
+            <button class="btn small" id="importBtn">Restore From File</button>
+        </div>
+        <p aria-live="polite" id="importMsg" style="margin-top:0.8rem; font-size:0.9rem;"></p>
+    `;
+    el.appendChild(backupPanel);
+    document.getElementById('exportBtn').addEventListener('click', () => exportAllData());
+    document.getElementById('importBtn').addEventListener('click', function() {
+        const f = document.getElementById('importFile');
+        const msg = document.getElementById('importMsg');
+        if (!f.files || !f.files[0]) { msg.textContent = 'Please choose a backup file first.'; return; }
+        importAllData(f.files[0], function(ok) {
+            msg.textContent = ok ? 'Restored! Refreshing...' : "That file couldn't be read.";
+            if (ok) setTimeout(() => location.reload(), 800);
+        });
+    });
+
+    // --- Shareable sync link (move to another device, no server) ---
+    const syncPanel = document.createElement('div');
+    syncPanel.className = 'panel';
+    syncPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Move To Another Device</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">This creates a link with your whole profile built into it. Open that link on your phone or another browser to load the same profile there — nothing is uploaded anywhere.</p>
+        <button class="btn small" id="syncLinkBtn">Generate My Link</button>
+        <div id="syncLinkResult" style="margin-top:1rem;"></div>
+    `;
+    el.appendChild(syncPanel);
+    document.getElementById('syncLinkBtn').addEventListener('click', function() {
+        const link = buildSyncLink(p);
+        const box = document.getElementById('syncLinkResult');
+        if (!link) { box.innerHTML = '<p class="error-msg">Could not generate a link right now.</p>'; return; }
+        box.innerHTML = `
+            <textarea readonly rows="3" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; font-size:0.82rem; background:var(--surface-secondary); color:var(--text-main);">${link}</textarea>
+            <p class="trait-desc" style="margin-top:0.6rem;">Copy this link and open it on the other device. It will ask before overwriting anything already saved there.</p>
+        `;
+    });
+
+    // --- Shareable summary card ---
+    const cardPanel = document.createElement('div');
+    cardPanel.className = 'panel';
+    cardPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Shareable Summary Card</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Download a simple image with your core numbers — nice to keep or share.</p>
+        <button class="btn small" id="cardBtn">Download My Summary Card</button>
+    `;
+    el.appendChild(cardPanel);
+    document.getElementById('cardBtn').addEventListener('click', () => downloadSummaryCard(p));
+
+    // --- Milestone / anniversary tracker ---
+    const msPanel = document.createElement('div');
+    msPanel.className = 'panel';
+    msPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Milestones & Anniversaries</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Save a recurring date — an anniversary, a work start date — and see its numerology reading for this year.</p>
+        <div class="grid-2">
+            <div class="field"><label for="msLabel">What is it?</label><input type="text" id="msLabel" placeholder="e.g., Wedding Anniversary"></div>
+            <div class="field"><label for="msDate">Date (year doesn't matter)</label><input type="date" id="msDate"></div>
+        </div>
+        <button class="btn small" id="msAddBtn">Save This Date</button>
+        <div aria-live="polite" id="msList" style="margin-top:1.2rem;"></div>
+    `;
+    el.appendChild(msPanel);
+
+    function renderMilestones() {
+        const list = loadMilestones();
+        const container = document.getElementById('msList');
+        if (!list.length) { container.innerHTML = `<p class="sub">No dates saved yet.</p>`; return; }
+        const today = new Date();
+        let html = '';
+        list.forEach(m => {
+            let year = today.getFullYear();
+            let next = new Date(year, m.month - 1, m.day);
+            if (next < today) { year++; }
+            const pred = buildDatePrediction(m.day, m.month, year, p.day, p.month);
+            html += `<div class="elem-card">
+                <div class="elem-card-top">
+                    <div class="elem-title">${m.label} — ${m.day}/${m.month}</div>
+                    <button class="family-remove" data-id="${m.id}">Remove</button>
+                </div>
+                <div class="elem-desc">Next occurrence (${year}): Personal Day ${pred.pd}. ${pred.core}</div>
+                <button class="btn small" style="margin-top:0.7rem;" onclick="openDayModal(${year}, ${m.month}, ${m.day})">Full Reading</button>
+            </div>`;
+        });
+        container.innerHTML = html;
+        container.querySelectorAll('.family-remove').forEach(btn => {
+            btn.addEventListener('click', function() { deleteMilestone(btn.dataset.id); renderMilestones(); });
+        });
+    }
+    document.getElementById('msAddBtn').addEventListener('click', function() {
+        const label = document.getElementById('msLabel').value.trim();
+        const date = document.getElementById('msDate').value;
+        if (!label || !date) return;
+        const [, mm, dd] = date.split('-').map(v => parseInt(v, 10));
+        addMilestone(label, dd, mm);
+        document.getElementById('msLabel').value = '';
+        document.getElementById('msDate').value = '';
+        renderMilestones();
+    });
+    renderMilestones();
+
+    // --- Personal Notebook ---
+    const notePanel = document.createElement('div');
+    notePanel.className = 'panel';
+    notePanel.innerHTML = `<h2 style="margin-bottom:0.4rem;">My Notebook</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Anything you tapped "☆ Save" on across the app shows up here.</p>
+        <div id="noteList"></div>`;
+    el.appendChild(notePanel);
+
+    // --- Self-test link ---
+    const qaPanel = document.createElement('div');
+    qaPanel.className = 'panel';
+    qaPanel.style.textAlign = 'center';
+    qaPanel.innerHTML = `<p class="sub" style="margin-bottom:0.8rem;">Curious whether your copy of this app is working correctly?</p>
+        <a class="btn small" href="qa.html">Run The Self-Test</a>`;
+    el.appendChild(qaPanel);
+
+    function renderNotes() {
+        const notes = loadNotes();
+        const container = document.getElementById('noteList');
+        if (!notes.length) { container.innerHTML = `<p class="sub">Nothing saved yet — look for the ☆ Save button on cards across the app.</p>`; return; }
+        let html = '';
+        notes.forEach(n => {
+            html += `<div class="elem-card">
+                <div class="elem-card-top">
+                    <div class="elem-title">${n.title}</div>
+                    <button class="family-remove" data-id="${n.id}">Remove</button>
+                </div>
+                <div class="elem-desc">${n.text}</div>
+                <p class="trait-desc" style="margin-top:0.5rem;">Saved ${new Date(n.savedAt).toLocaleDateString()}${n.sourcePage ? ' from ' + n.sourcePage : ''}</p>
+            </div>`;
+        });
+        container.innerHTML = html;
+        container.querySelectorAll('.family-remove').forEach(btn => {
+            btn.addEventListener('click', function() { deleteNote(btn.dataset.id); renderNotes(); });
+        });
+    }
+    renderNotes();
+}
+</script>
+</body>
+</html>

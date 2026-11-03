@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<style>
+.qa-row { display:flex; justify-content:space-between; align-items:center; padding:0.7rem 1rem; border-bottom:1px solid var(--border-color); gap:1rem; }
+.qa-row:last-child { border-bottom:none; }
+.qa-pass { color:#15803d; font-weight:800; }
+.qa-fail { color:#b91c1c; font-weight:800; }
+.qa-name { font-size:0.92rem; }
+</style>
+</head>
+<body class="theme-overview">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="index.html">Start Over</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>App <span>Self-Test</span></h1>
+        <p>Runs a set of checks against your own copy of this app, right in your browser. Nothing is sent anywhere.</p>
+    </div>
+    <div class="panel">
+        <h2 style="margin-bottom:0.4rem;">Results</h2>
+        <p class="sub" style="margin-bottom:1rem;" id="summaryLine">Running...</p>
+        <div id="results" aria-live="polite"></div>
+    </div>
+    <div class="panel">
+        <p class="trait-desc">If anything shows "FAIL" after you've edited the app's files yourself, that's a signal something in <code>engine-data.js</code>, <code>engine-content.js</code>, or <code>engine-ui.js</code> needs a second look. If you haven't edited anything and still see a failure, something didn't copy over correctly — try re-downloading all the files.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const results = [];
+function check(name, fn) {
+    let pass = false, detail = '';
+    try { pass = !!fn(); }
+    catch (e) { pass = false; detail = e.message; }
+    results.push({ name, pass, detail });
+}
+
+// --- Core calculations ---
+check('reduceToSingleDigit(29) → 2', () => reduceToSingleDigit(29, false) === 2);
+check('calculateKua(1994, male) is a valid 1-9 number', () => { const k = calculateKua(1994, 'male'); return k >= 1 && k <= 9; });
+check('calculateNameNumbers produces 1-9/11/22/33 values', () => {
+    const n = calculateNameNumbers('John Smith');
+    const valid = v => (v >= 1 && v <= 9) || v === 11 || v === 22 || v === 33;
+    return valid(n.nameNumber) && valid(n.heartDesire) && valid(n.soulUrge);
+});
+check('calculateGridCounts sums to the digit count of the input', () => {
+    const c = calculateGridCounts(23, 8, 1994);
+    const total = Object.values(c).reduce((a,b) => a+b, 0);
+    return total === '2381994'.length;
+});
+
+// --- Personality engine ---
+check('computeTraits returns all 14 traits, each 4-96%', () => {
+    const traits = computeTraits({1:1,2:0,3:2,4:1,5:1,6:0,7:1,8:2,9:3}, 5, 6, 7);
+    return traits.length === 14 && traits.every(t => t.pct >= 4 && t.pct <= 96);
+});
+check('QUIZ_QUESTIONS covers all 14 trait keys with no duplicates', () => {
+    const keys = QUIZ_QUESTIONS.map(q => q.trait);
+    return new Set(keys).size === 14 && keys.length === 14;
+});
+
+// --- Compatibility & core harmony ---
+check('getRelationType returns a valid relation type', () => ['friendly','neutral','enemy'].includes(getRelationType(5, 8)));
+check('computeCompatibilityScore returns 0-100', () => {
+    const r = computeCompatibilityScore(5,6,7,2,3,4);
+    return r.score >= 0 && r.score <= 100;
+});
+check('computeCoreHarmony returns 0-100', () => {
+    const r = computeCoreHarmony(5,6,7);
+    return r.score >= 0 && r.score <= 100;
+});
+
+// --- Date prediction uniqueness (the "not too soon" rule) ---
+check('Same Personal Day 9 days apart reads differently (weekday/day-of-month vary)', () => {
+    const a = buildDatePrediction(1, 3, 2026, 23, 8);
+    const b = buildDatePrediction(10, 3, 2026, 23, 8);
+    return a.pd === b.pd && (a.weekdayLine !== b.weekdayLine || a.dayOfMonthLine !== b.dayOfMonthLine);
+});
+check('buildCalendarHTML produces a 7-column grid with headers', () => {
+    const html = buildCalendarHTML(2026, 3, { mulank: 5, bhagyank: 6, day:23, month:8 });
+    return html.includes('cal-head') && html.includes('cal-cell');
+});
+
+// --- Content dictionaries exist and are complete ---
+check('DIGIT_MEANINGS covers all digits 1-9', () => [1,2,3,4,5,6,7,8,9].every(n => DIGIT_MEANINGS[n] && DIGIT_MEANINGS[n].missing && DIGIT_MEANINGS[n].normal && DIGIT_MEANINGS[n].repeat));
+check('LOSHU_PLANES has 8 planes, each with 3 numbers', () => LOSHU_PLANES.length === 8 && LOSHU_PLANES.every(p => p.numbers.length === 3));
+check('SYMPTOM_MAP entries all resolve via lookupSymptom', () => SYMPTOM_MAP.every(s => !!lookupSymptom(s.key, { mulank: 5, gridCounts: {1:1,2:0,3:2,4:1,5:1,6:0,7:1,8:2,9:3} })));
+check('TRAIT_COMBOS all have a title and working test function', () => TRAIT_COMBOS.every(c => typeof c.title === 'string' && typeof c.test === 'function'));
+check('CAREER_DIRECTORY has 12 entries (1-9, 11, 22, 33)', () => CAREER_DIRECTORY.length === 12);
+check('POPUPS has at least 25 "know more" entries', () => Object.keys(POPUPS).length >= 25);
+
+// --- Storage & backup round-trip ---
+check('saveProfile/loadProfile round-trip preserves data', () => {
+    const before = loadProfile();
+    const testProfile = { fullName: 'QA Test', day: 1, month: 1, year: 2000, mulank: 1, bhagyank: 1, kua: 1, gridCounts: {}, traits: [] };
+    saveProfile(testProfile);
+    const loaded = loadProfile();
+    if (before) saveProfile(before); else localStorage.removeItem('npData');
+    return loaded && loaded.fullName === 'QA Test';
+});
+check('encodeProfileForLink / decodeProfileFromLink round-trip', () => {
+    const testProfile = { fullName: 'Sync Test', mulank: 3 };
+    const encoded = encodeProfileForLink(testProfile);
+    const decoded = decodeProfileFromLink(encoded);
+    return decoded && decoded.fullName === 'Sync Test' && decoded.mulank === 3;
+});
+check('Notebook save/delete round-trip', () => {
+    const id = saveNote('QA Note', 'test text', 'qa.html');
+    const found = loadNotes().find(n => n.id === id);
+    deleteNote(id);
+    const goneNow = !loadNotes().find(n => n.id === id);
+    return !!found && goneNow;
+});
+check('Family add/delete round-trip', () => {
+    const id = addFamilyMember('QA Person', 15, 6, 1990, 'female');
+    const found = loadFamily().find(f => f.id === id);
+    deleteFamilyMember(id);
+    const goneNow = !loadFamily().find(f => f.id === id);
+    return !!found && goneNow;
+});
+
+// --- Search index ---
+check('buildSearchIndex returns a non-empty, well-formed index', () => {
+    const idx = buildSearchIndex();
+    return idx.length > 20 && idx.every(i => typeof i.title === 'string');
+});
+check('searchIndex finds "kua" in the index', () => searchIndex(buildSearchIndex(), 'kua').length > 0);
+
+// --- Render ---
+const box = document.getElementById('results');
+let passCount = 0;
+box.innerHTML = results.map(r => {
+    if (r.pass) passCount++;
+    return `<div class="qa-row">
+        <span class="qa-name">${r.name}</span>
+        <span class="${r.pass ? 'qa-pass' : 'qa-fail'}">${r.pass ? '✓ PASS' : '✗ FAIL' + (r.detail ? ' — ' + r.detail : '')}</span>
+    </div>`;
+}).join('');
+document.getElementById('summaryLine').textContent = `${passCount} of ${results.length} checks passed.`;
+</script>
+</body>
+</html>

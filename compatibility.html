@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compatibility</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-compat">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html" class="active">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Check <span>Compatibility</span></h1>
+        <p>See how your number pairs with someone else's.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const NOTES = {
+        friendly: "This pairing usually flows with less friction. You tend to understand each other's pace without much explaining.",
+        neutral: "This pairing is workable, but it may need clearer communication since your natural styles are not automatically alike.",
+        enemy: "This pairing can bring real growth, but it usually takes more patience — your natural styles pull in different directions."
+    };
+    const el = document.getElementById('app');
+
+    // --- Quick compare with anyone by date of birth ---
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `
+        <div class="elem-card-top">
+            <h2 style="margin:0;">Compare With Someone</h2>
+            <button class="info-btn" aria-label="Learn more" onclick="openInfo('compatibility')">i</button>
+        </div>
+        <p class="sub" style="margin-top:0.6rem;">Enter someone's date of birth. We'll compare their Birth Number with yours (${p.mulank}).</p>
+        <div class="field">
+            <label for="otherDob">Their Date of Birth</label>
+            <input type="date" id="otherDob">
+        </div>
+        <div class="field">
+            <label for="otherGender">Their Gender (for a fuller score, optional)</label>
+            <select id="otherGender"><option value="">Skip Kua Number</option><option value="male">Male</option><option value="female">Female</option></select>
+        </div>
+        <button class="btn" id="checkBtn">Check Compatibility</button>
+        <div aria-live="polite" id="result" style="margin-top:1.4rem;"></div>
+    `;
+    el.appendChild(panel);
+
+    document.getElementById('checkBtn').addEventListener('click', function() {
+        const val = document.getElementById('otherDob').value;
+        const otherGender = document.getElementById('otherGender').value;
+        const resultBox = document.getElementById('result');
+        if (!val) { resultBox.innerHTML = '<p class="error-msg">Please choose a date.</p>'; return; }
+        const [y, m, d] = val.split('-').map(v => parseInt(v, 10));
+        const otherMulank = safeDigit(reduceToSingleDigit(d, false));
+        const otherBhagyank = safeDigit(reduceToSingleDigit(`${d}${m}${y}`, false));
+        const otherKua = otherGender ? calculateKua(y, otherGender) : otherMulank;
+        const type = getRelationType(p.mulank, otherMulank);
+        const weighted = computeCompatibilityScore(p.mulank, p.bhagyank, p.kua, otherMulank, otherBhagyank, otherKua);
+        resultBox.innerHTML = `
+            <div class="elem-card">
+                <div class="trait-row" style="margin-bottom:0.8rem;">
+                    <div class="trait-head">
+                        <div class="trait-name">Overall Compatibility Score</div>
+                        <div class="trait-pct">${weighted.score}%</div>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${weighted.score}%;"></div></div>
+                    <div class="trait-desc">${COMPAT_SCORE_LINES[weighted.band]}</div>
+                </div>
+                <div class="elem-card-top">
+                    <div class="elem-title">Their Birth Number: ${otherMulank} <span class="trait-band ${RELATION_BAND[type]}">${RELATION_WORD[type]}</span></div>
+                </div>
+                <div class="elem-desc">${NOTES[type]}</div>
+                ${saveButtonHTML('Compatibility Score: ' + weighted.score + '%', COMPAT_SCORE_LINES[weighted.band], 'compatibility.html')}
+            </div>`;
+    });
+
+    // --- Partner synergy, using details from the start page if provided ---
+    if (p.partnerName && p.partnerDob) {
+        const [py2, pm2, pd2] = p.partnerDob.split('-').map(v => parseInt(v, 10));
+        const pMulank = safeDigit(reduceToSingleDigit(pd2, false));
+        const pBhagyank = safeDigit(reduceToSingleDigit(`${py2}${pm2}${pd2}`, false));
+        const rRoot = getRelationType(p.mulank, pMulank);
+        const rDestiny = getRelationType(p.bhagyank, pBhagyank);
+        const composite = safeDigit(reduceToSingleDigit(safeDigit(p.bhagyank) + pBhagyank, false));
+        const SYNERGY = {
+            1: { title: "Independent Duo", text: "Together you're driven and ambitious. Watch for both of you wanting to lead at the same time — learn to share the spotlight." },
+            2: { title: "Close Bond", text: "Together you build strong emotional closeness. Watch for absorbing each other's stress too much and losing your own space." },
+            3: { title: "Playful Match", text: "Together you bring fun and creativity. Watch for avoiding serious talks by joking your way past them." },
+            4: { title: "Steady Foundation", text: "Together you build something lasting and secure. Watch for the relationship feeling more like a routine than a romance." },
+            5: { title: "Adventurous Pair", text: "Together you thrive on excitement and change. Watch for struggling to settle into a steady routine together." },
+            6: { title: "Home-Centred Bond", text: "Together you build a warm, caring home life. Watch for over-giving or quietly keeping score of who does more." },
+            7: { title: "Deep Connection", text: "Together you share a thoughtful, private bond. Watch for needing so much space that you drift apart." },
+            8: { title: "Power Pair", text: "Together you can build real success and security. Watch for turning the relationship into a competition." },
+            9: { title: "Big-Hearted Match", text: "Together you share big ideals and passion. Watch for expecting too much perfection from each other." }
+        };
+        const syn = SYNERGY[composite] || SYNERGY[1];
+        const pKua = calculateKua(py2, p.partnerGender || 'male');
+        const weightedPartner = computeCompatibilityScore(p.mulank, p.bhagyank, p.kua, pMulank, pBhagyank, pKua);
+        const partnerPanel = document.createElement('div');
+        partnerPanel.className = 'panel';
+        partnerPanel.innerHTML = `
+            <div class="elem-card-top"><h2 style="margin:0;">You & ${p.partnerName}</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('partnerSynergy')">i</button></div>
+            <div class="trait-row" style="margin-top:1rem;">
+                <div class="trait-head">
+                    <div class="trait-name">Overall Compatibility Score</div>
+                    <div class="trait-pct">${weightedPartner.score}%</div>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:${weightedPartner.score}%;"></div></div>
+                <div class="trait-desc">${COMPAT_SCORE_LINES[weightedPartner.band]}</div>
+            </div>
+            <div class="elem-card" style="margin-top:1rem;">
+                <div class="elem-desc">
+                    Day-to-day style: <strong class="trait-band ${RELATION_BAND[rRoot]}">${RELATION_WORD[rRoot]}</strong><br><br>
+                    Long-term direction: <strong class="trait-band ${RELATION_BAND[rDestiny]}">${RELATION_WORD[rDestiny]}</strong>
+                </div>
+            </div>
+            <div class="elem-card">
+                <div class="elem-title">${syn.title} (Combined Number ${composite})</div>
+                <div class="elem-desc">${syn.text}</div>
+                ${saveButtonHTML('You & ' + p.partnerName + ': ' + weightedPartner.score + '% — ' + syn.title, syn.text, 'compatibility.html')}
+            </div>`;
+        el.appendChild(partnerPanel);
+    }
+
+    // --- External number compatibility ---
+    const EXT = [['house','House / Flat Number'], ['car1','Vehicle Number Plate (Car)'], ['car2','2nd Vehicle Number (Bike/Scooty)'], ['phone1','Phone Number'], ['phone2','2nd Phone Number'], ['phone3','3rd Phone Number']];
+    const extRows = EXT.filter(([key]) => p[key]);
+    if (extRows.length) {
+        const extPanel = document.createElement('div');
+        extPanel.className = 'panel';
+        let extHTML = `<div class="elem-card-top"><h2 style="margin:0;">Do Your Numbers Match Your Things?</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('externalCompatibility')">i</button></div>`;
+        extRows.forEach(([key, label]) => {
+            const rr = getRelationType(p.mulank, p[key]);
+            const rd = getRelationType(p.bhagyank, p[key]);
+            extHTML += `<div class="elem-card" style="margin-top:1rem;">
+                <div class="elem-title">${label}: ${p[key]}</div>
+                <div class="elem-desc">Vs your Birth Number: <strong class="trait-band ${RELATION_BAND[rr]}">${RELATION_WORD[rr]}</strong> &nbsp; Vs your Life Path Number: <strong class="trait-band ${RELATION_BAND[rd]}">${RELATION_WORD[rd]}</strong></div>
+            </div>`;
+        });
+        extPanel.innerHTML = extHTML;
+        el.appendChild(extPanel);
+    }
+
+    // --- Name Sandbox ---
+    const sandboxPanel = document.createElement('div');
+    sandboxPanel.className = 'panel';
+    sandboxPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Test Any Name</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('nameSandbox')">i</button></div>
+        <p class="sub" style="margin-top:0.6rem;">Check a business name, a baby name, or any name idea against your own numbers.</p>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+            <input type="text" id="sandboxInput" placeholder="Enter a name to test" style="flex:1; min-width:200px; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:8px;">
+            <button class="btn small" id="sandboxBtn">Test</button>
+        </div>
+        <div aria-live="polite" id="sandboxResult" style="margin-top:1.2rem;"></div>`;
+    el.appendChild(sandboxPanel);
+    document.getElementById('sandboxBtn').addEventListener('click', function() {
+        const name = document.getElementById('sandboxInput').value.trim();
+        const box = document.getElementById('sandboxResult');
+        if (!name) { box.innerHTML = '<p class="error-msg">Please type a name first.</p>'; return; }
+        const num = safeDigit(calculateNameNumbers(name).nameNumber);
+        const rr = getRelationType(p.mulank, num);
+        const rd = getRelationType(p.bhagyank, num);
+        let verdict = (rr === 'enemy' || rd === 'enemy') ? "Not the best fit for your numbers." :
+            (rr === 'friendly' && rd === 'friendly') ? "A strong fit with your numbers." : "An okay, neutral fit with your numbers.";
+        box.innerHTML = `<div class="elem-card">
+            <div class="elem-title">"${name}" → Number ${num}</div>
+            <div class="elem-desc">Vs your Birth Number: <strong class="trait-band ${RELATION_BAND[rr]}">${RELATION_WORD[rr]}</strong> &nbsp; Vs your Life Path Number: <strong class="trait-band ${RELATION_BAND[rd]}">${RELATION_WORD[rd]}</strong><br><br>${verdict}</div>
+        </div>`;
+    });
+
+    // --- Geo Matrix ---
+    const geoPanel = document.createElement('div');
+    geoPanel.className = 'panel';
+    geoPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Test A Location</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('geoMatrix')">i</button></div>
+        <p class="sub" style="margin-top:0.6rem;">Curious about a city or country? See how its name lines up with your numbers.</p>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+            <input type="text" id="geoInput" placeholder="e.g., London, Dubai, Tokyo" style="flex:1; min-width:200px; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:8px;">
+            <button class="btn small" id="geoBtn">Test</button>
+        </div>
+        <div aria-live="polite" id="geoResult" style="margin-top:1.2rem;"></div>`;
+    el.appendChild(geoPanel);
+    document.getElementById('geoBtn').addEventListener('click', function() {
+        const loc = document.getElementById('geoInput').value.trim();
+        const box = document.getElementById('geoResult');
+        if (!loc) { box.innerHTML = '<p class="error-msg">Please type a place name first.</p>'; return; }
+        const num = safeDigit(calculateNameNumbers(loc).nameNumber);
+        const rr = getRelationType(p.mulank, num);
+        const rd = getRelationType(p.bhagyank, num);
+        let verdict = (rr === 'enemy' || rd === 'enemy') ? "This place's number doesn't line up smoothly with yours." :
+            (rr === 'friendly' && rd === 'friendly') ? "This place's number lines up nicely with yours." : "This place's number is a neutral, mixed fit with yours.";
+        box.innerHTML = `<div class="elem-card">
+            <div class="elem-title">"${loc}" → Number ${num}</div>
+            <div class="elem-desc">Vs your Birth Number: <strong class="trait-band ${RELATION_BAND[rr]}">${RELATION_WORD[rr]}</strong> &nbsp; Vs your Life Path Number: <strong class="trait-band ${RELATION_BAND[rd]}">${RELATION_WORD[rd]}</strong><br><br>${verdict}</div>
+        </div>`;
+    });
+}
+</script>
+</body>
+</html>

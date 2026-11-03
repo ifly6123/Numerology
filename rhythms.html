@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Rhythms</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-rhythms">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html" class="active">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your Daily <span>Rhythms</span></h1>
+        <p>Rough energy windows through the day, plus a general look at wealth channels.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+    const c = CIRCADIAN_SIMPLE[safeDigit(p.mulank)] || CIRCADIAN_SIMPLE[1];
+
+    const circPanel = document.createElement('div');
+    circPanel.className = 'panel';
+    circPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Your Hourly Energy Windows</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('circadian')">i</button></div>
+        <div class="elem-card" style="margin-top:1rem; border-left:4px solid #10b981;">
+            <div class="elem-title">🟢 Peak Window</div><div class="elem-desc">${c.peak}</div>
+        </div>
+        <div class="elem-card" style="border-left:4px solid #f59e0b;">
+            <div class="elem-title">🟡 Good Flow Window</div><div class="elem-desc">${c.secondary}</div>
+        </div>
+        <div class="elem-card" style="border-left:4px solid #ef4444;">
+            <div class="elem-title">🔴 Low Energy Window</div><div class="elem-desc">${c.caution}</div>
+        </div>
+        ${saveButtonHTML('My Hourly Energy Windows', `Peak: ${c.peak} Good flow: ${c.secondary} Low energy: ${c.caution}`, 'rhythms.html')}`;
+    el.appendChild(circPanel);
+
+    // Asset allocation
+    const hasSilver = p.gridCounts[2] > 0 && p.gridCounts[5] > 0 && p.gridCounts[8] > 0;
+    const hasPractical = p.gridCounts[8] > 0 && p.gridCounts[1] > 0 && p.gridCounts[6] > 0;
+    const missing58 = !(p.gridCounts[5] > 0) || !(p.gridCounts[8] > 0);
+    const notes = [];
+    if (hasSilver) notes.push("<strong>Property & physical assets:</strong> Your numbers show a strong pattern here, suggesting a natural fit with real estate, land, or holding physical assets.");
+    if (hasPractical) notes.push("<strong>Structured investments:</strong> Your numbers suggest steady, structured options like long-term stocks or bonds may suit you better than quick, risky moves.");
+    if (missing58) notes.push("<strong>Go easy on high risk:</strong> With these particular numbers light in your chart, very speculative moves (day-trading, for example) may carry extra risk for you. Steady, automated saving tends to suit you better.");
+    if (notes.length === 0) notes.push("<strong>Balanced approach:</strong> Your chart doesn't lean strongly any one way, which suits a mixed, diversified approach.");
+
+    const assetPanel = document.createElement('div');
+    assetPanel.className = 'panel';
+    assetPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">A General Look At Wealth Channels</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('assetAllocation')">i</button></div>
+        ${notes.map(n => `<div class="elem-card" style="margin-top:1rem;"><div class="elem-desc">${n}</div></div>`).join('')}
+        <p class="notice" style="margin-top:1.2rem;">This is a light, general reflection only — always talk to a real financial advisor before making investment decisions.</p>`;
+    el.appendChild(assetPanel);
+}
+</script>
+</body>
+</html>

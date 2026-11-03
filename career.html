@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Career Fit</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-career">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html" class="active">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your <span>Career</span> Fit</h1>
+        <p>The kind of work environment that tends to suit your natural style.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const CAREER = {
+        1: { style: "Leading & Deciding", desc: "You do best when you can make your own calls and see the results of your own decisions. Roles with too much oversight tend to frustrate you.", fits: "Starting your own project, managing a team, sales leadership, entrepreneurship." },
+        2: { style: "Supporting & Coordinating", desc: "You do best in roles where cooperation and fairness matter more than competition. You often become the person a team relies on to keep things smooth.", fits: "HR, counselling, coordination roles, partnerships, diplomacy-based work." },
+        3: { style: "Expressing & Communicating", desc: "You do best when your work lets you speak, write, perform, or create. Repetitive, silent tasks drain your energy fast.", fits: "Marketing, writing, teaching, performing, public relations." },
+        4: { style: "Building & Organising", desc: "You do best with clear structure, steady routines, and visible progress. Chaotic or last-minute environments wear you down.", fits: "Engineering, accounting, project management, operations." },
+        5: { style: "Exploring & Adapting", desc: "You do best when your work changes often and involves movement, travel, or variety. A fixed desk job with no change can feel like a trap.", fits: "Sales, travel-based work, journalism, consulting, event work." },
+        6: { style: "Caring & Harmonising", desc: "You do best in roles centred on people, care, or beauty. You take pride in creating comfort or improvement for others.", fits: "Healthcare, teaching, interior design, hospitality, family business." },
+        7: { style: "Researching & Analysing", desc: "You do best with quiet, focused work that lets you go deep into a subject rather than skim the surface.", fits: "Research, data analysis, science, writing, spiritual or philosophical work." },
+        8: { style: "Achieving & Managing", desc: "You do best where hard work is clearly rewarded, especially financially. You are motivated by visible results and status.", fits: "Finance, business ownership, real estate, executive management." },
+        9: { style: "Serving & Advocating", desc: "You do best in work connected to a bigger cause than personal gain. Purely self-serving work tends to feel empty to you over time.", fits: "Non-profits, activism, medicine, humanitarian work, the arts." },
+        11: { style: "Guiding & Inspiring", desc: "You do best where your insight can genuinely help others see something new.", fits: "Coaching, spiritual teaching, design, therapy." },
+        22: { style: "Constructing & Scaling", desc: "You do best turning big ideas into large, working systems.", fits: "Architecture, large-scale project leadership, systems building." },
+        33: { style: "Teaching & Healing", desc: "You do best where you can care for and guide people over the long term.", fits: "Mentoring, healthcare leadership, community building." }
+    };
+
+    const main = CAREER[p.mulank] || CAREER[1];
+    const secondary = CAREER[p.bhagyank] || CAREER[1];
+
+    const el = document.getElementById('app');
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `
+        <div class="elem-card-top">
+            <h2 style="margin:0;">Your Natural Work Style</h2>
+            <button class="info-btn" aria-label="Learn more" onclick="openInfo('careerFit')">i</button>
+        </div>
+        <div class="elem-card" style="margin-top:1.2rem;">
+            <div class="elem-title">${main.style}</div>
+            <div class="elem-desc">${main.desc}</div>
+            <p class="trait-desc" style="margin-top:0.6rem;"><strong>Worth exploring:</strong> ${main.fits}</p>
+            ${saveButtonHTML(main.style, main.desc + ' Worth exploring: ' + main.fits, 'career.html')}
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">Longer-Term Direction: ${secondary.style}</div>
+            <div class="elem-desc">${secondary.desc}</div>
+            <p class="trait-desc" style="margin-top:0.6rem;"><strong>Worth exploring:</strong> ${secondary.fits}</p>
+        </div>
+    `;
+    el.appendChild(panel);
+
+    // Industry suggestions
+    const industryPanel = document.createElement('div');
+    industryPanel.className = 'panel';
+    industryPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Industries Worth A Look</h2>
+        <div class="elem-card">
+            <div class="elem-title">Based on your Life Path Number (${p.bhagyank})</div>
+            <div class="elem-desc">${INDUSTRY_SIMPLE[p.bhagyank] || INDUSTRY_SIMPLE[1]}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">Based on your Birth Number (${p.mulank})</div>
+            <div class="elem-desc">${INDUSTRY_SIMPLE[p.mulank] || INDUSTRY_SIMPLE[1]}</div>
+        </div>`;
+    el.appendChild(industryPanel);
+
+    // Career timing based on today's Personal Year
+    const today = new Date();
+    const py = personalYear(p.month, p.day, today.getFullYear());
+    let gettingJob, switchingJob;
+    if (py === 1 || py === 8) {
+        gettingJob = { band: 'band-Low', text: `You're in a Personal Year ${py}. This tends to be a strong window for landing a new role or a promotion.` };
+    } else if (py === 3 || py === 6) {
+        gettingJob = { band: 'band-Moderate', text: `You're in a Personal Year ${py}. Opportunities are more likely to come through people you know than cold applications.` };
+    } else {
+        gettingJob = { band: 'band-High', text: `You're in a Personal Year ${py}. Job hunting may need more patience than usual right now — expect slower responses.` };
+    }
+    if (py === 5) {
+        switchingJob = { band: 'band-Low', text: `You're in a Personal Year ${py}, which favours change. It's a reasonably safe time to switch jobs or industries.` };
+    } else if (py === 9 || py === 4) {
+        switchingJob = { band: 'band-High', text: `You're in a Personal Year ${py}, which favours stability. Quitting without a solid plan could lead to a longer gap than expected.` };
+    } else {
+        switchingJob = { band: 'band-Moderate', text: `You're in a Personal Year ${py}. Switching is fine if needed, just check every contract carefully before committing.` };
+    }
+    const timingPanel = document.createElement('div');
+    timingPanel.className = 'panel';
+    timingPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Career Timing Right Now</h2>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Getting A New Job <span class="trait-band ${gettingJob.band}">${gettingJob.band === 'band-Low' ? 'Good Timing' : gettingJob.band === 'band-Moderate' ? 'Mixed Timing' : 'Slow Timing'}</span></div></div>
+            <div class="elem-desc">${gettingJob.text}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Switching Or Quitting <span class="trait-band ${switchingJob.band}">${switchingJob.band === 'band-Low' ? 'Good Timing' : switchingJob.band === 'band-Moderate' ? 'Mixed Timing' : 'Riskier Timing'}</span></div></div>
+            <div class="elem-desc">${switchingJob.text}</div>
+        </div>`;
+    el.appendChild(timingPanel);
+
+    // --- Concrete job titles worth exploring ---
+    const bTitles = JOB_TITLES[p.bhagyank] || JOB_TITLES[1];
+    const mTitles = JOB_TITLES[p.mulank] || JOB_TITLES[1];
+    const combinedTitles = [...new Set([...bTitles, ...mTitles])].slice(0, 8);
+    const titlesPanel = document.createElement('div');
+    titlesPanel.className = 'panel';
+    titlesPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Actual Job Titles Worth Researching</h2>
+        <p class="sub" style="margin-top:-0.6rem; margin-bottom:1rem;">These are starting points to search and compare, not a fixed list of options.</p>
+        <div class="elem-card"><ul style="padding-left:1.3rem; line-height:2; color:var(--text-main);">
+            ${combinedTitles.map(t => `<li>${t}</li>`).join('')}
+        </ul></div>`;
+    el.appendChild(titlesPanel);
+
+    // --- Entrepreneur vs Employee score ---
+    const entPct = computeEntrepreneurScore(p.gridCounts, safeDigit(p.mulank), safeDigit(p.bhagyank));
+    let entBand = 'Low';
+    if (entPct >= 75) entBand = 'VeryHigh'; else if (entPct >= 55) entBand = 'High'; else if (entPct >= 35) entBand = 'Moderate';
+    const entPanel = document.createElement('div');
+    entPanel.className = 'panel';
+    entPanel.innerHTML = `
+        <h2 style="margin-bottom:1.2rem;">Employee vs. Your Own Venture</h2>
+        <div class="trait-row">
+            <div class="trait-head">
+                <div class="trait-name">Pull Toward Running Your Own Thing <span class="trait-band level-${entBand}">${{Low:'Low',Moderate:'Moderate',High:'High',VeryHigh:'Very High'}[entBand]}</span></div>
+                <div class="trait-pct">${entPct}%</div>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${entPct}%;"></div></div>
+            <div class="trait-desc">${ENTREPRENEUR_LINES[entBand]}</div>
+        </div>`;
+    el.appendChild(entPanel);
+
+    // --- Resume strengths, pulled from top personality traits ---
+    if (p.traits && p.traits.length) {
+        const topTraits = [...p.traits].sort((a,b) => b.pct - a.pct).slice(0, 4);
+        const STRENGTH_PHRASES = {
+            confidence: "Confident decision-maker, comfortable acting without needing constant approval",
+            leadership: "Natural at taking charge and guiding a team toward a goal",
+            discipline: "Consistent and reliable — follows through on commitments without needing reminders",
+            sociability: "Builds rapport quickly and works well across teams",
+            adaptability: "Adjusts fast to changing priorities and unclear situations",
+            intuition: "Good instincts for spotting issues before they become obvious",
+            empathy: "Strong at understanding client or teammate needs and building trust",
+            emotional_stability: "Stays composed and steady under pressure",
+            ego_positive: "Highly self-motivated, driven to prove results through action",
+            anger_general: null, anger_emotional: null, anger_work: null, ego: null, people_pleasing: null
+        };
+        const bullets = topTraits.map(t => STRENGTH_PHRASES[t.key]).filter(Boolean);
+        if (bullets.length) {
+            const resumePanel = document.createElement('div');
+            resumePanel.className = 'panel';
+            resumePanel.innerHTML = `
+                <h2 style="margin-bottom:1rem;">Strengths Worth Putting On Your Resume</h2>
+                <p class="sub" style="margin-top:-0.6rem; margin-bottom:1rem;">Pulled from your strongest traits on the Personality page.</p>
+                <div class="elem-card"><ul style="padding-left:1.3rem; line-height:2; color:var(--text-main);">
+                    ${bullets.map(b => `<li>${b}</li>`).join('')}
+                </ul></div>`;
+            el.appendChild(resumePanel);
+        }
+    }
+
+    // --- Best day for an interview or big career move, tied to circadian peak ---
+    const circ = CIRCADIAN_SIMPLE[safeDigit(p.mulank)] || CIRCADIAN_SIMPLE[1];
+    const bestDayPanel = document.createElement('div');
+    bestDayPanel.className = 'panel';
+    bestDayPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Best Time Of Day For Big Career Moves</h2>
+        <div class="elem-card"><div class="elem-desc">For things like interviews or important pitches, your numbers point to this as your sharpest window: <strong>${circ.peak}</strong></div></div>`;
+    el.appendChild(bestDayPanel);
+
+    // --- Browse every career path, not just your own top match ---
+    const dirPanel = document.createElement('div');
+    dirPanel.className = 'panel';
+    let dirHTML = `<h2 style="margin-bottom:0.4rem;">Browse Every Career Path</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Your own strongest matches are Number ${p.mulank} and Number ${p.bhagyank} above — but it's worth glancing through the full list below too.</p>`;
+    CAREER_DIRECTORY.forEach(c => {
+        const isMatch = safeDigit(p.mulank) === c.num || safeDigit(p.bhagyank) === c.num;
+        dirHTML += `<div class="elem-card" ${isMatch ? 'style="border-left-color:#10b981;"' : ''}>
+            <div class="elem-title">${c.title} (Number ${c.num}) ${isMatch ? '<span class="trait-band band-Low">Your Match</span>' : ''}</div>
+            <div class="elem-desc">${c.desc}</div>
+        </div>`;
+    });
+    dirPanel.innerHTML = dirHTML;
+    el.appendChild(dirPanel);
+
+    // --- Free-text: test any career/job title not in the list above ---
+    const checkPanel = document.createElement('div');
+    checkPanel.className = 'panel';
+    checkPanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Don't See Your Career Above?</h2>
+        <p class="sub" style="margin-bottom:1rem;">Type any job title, career, or business idea, and check how it lines up with your numbers.</p>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap;">
+            <input type="text" id="careerInput" placeholder="e.g., Veterinarian, Podcaster, Bakery Owner" style="flex:1; min-width:200px; padding:0.75rem 0.9rem; border:1px solid var(--border-color); border-radius:8px;">
+            <button class="btn small" id="careerCheckBtn">Check It</button>
+        </div>
+        <div aria-live="polite" id="careerCheckResult" style="margin-top:1.2rem;"></div>`;
+    el.appendChild(checkPanel);
+    document.getElementById('careerCheckBtn').addEventListener('click', function() {
+        const val = document.getElementById('careerInput').value.trim();
+        const box = document.getElementById('careerCheckResult');
+        if (!val) { box.innerHTML = '<p class="error-msg">Please type a career or job title first.</p>'; return; }
+        const num = safeDigit(calculateNameNumbers(val).nameNumber);
+        const rr = getRelationType(p.mulank, num);
+        const rd = getRelationType(p.bhagyank, num);
+        let verdict = (rr === 'enemy' || rd === 'enemy') ? "This path may take more conscious effort to feel natural for you — not impossible, just less of a default fit." :
+            (rr === 'friendly' && rd === 'friendly') ? "This path lines up well with your numbers — worth taking seriously." : "This is a workable, neutral fit — neither a strong pull nor a clash.";
+        box.innerHTML = `<div class="elem-card">
+            <div class="elem-title">"${val}" → Number ${num}</div>
+            <div class="elem-desc">Vs your Birth Number: <strong class="trait-band ${RELATION_BAND[rr]}">${RELATION_WORD[rr]}</strong> &nbsp; Vs your Life Path Number: <strong class="trait-band ${RELATION_BAND[rd]}">${RELATION_WORD[rd]}</strong><br><br>${verdict}</div>
+        </div>`;
+    });
+}
+</script>
+</body>
+</html>

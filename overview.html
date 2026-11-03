@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numerology Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-overview">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html" class="active">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your <span>Numerology</span> Profile</h1>
+        <p>Your five core numbers, explained in plain language.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const SIMPLE = NUMBER_MEANINGS;
+
+    const el = document.getElementById('app');
+
+    function card(id, title, number, text) {
+        const wrap = document.createElement('div');
+        wrap.className = 'panel';
+        wrap.innerHTML = `
+            <div class="elem-card">
+                <div class="elem-card-top">
+                    <div class="elem-title">${title}: <span class="num">${number}</span></div>
+                    <button class="info-btn" aria-label="Learn more" onclick="openInfo('${id}')">i</button>
+                </div>
+                <div class="elem-desc">${text}</div>
+                <div style="margin-top:0.7rem; display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                    ${saveButtonHTML(title + ': ' + number, text, 'overview.html')}
+                    <a href="glossary.html?num=${safeDigit(number)}" class="save-btn" style="text-decoration:none;">Full Meaning In Glossary →</a>
+                </div>
+            </div>`;
+        el.appendChild(wrap);
+    }
+
+    card('mulank', 'Mulank (Birth Number)', p.mulank, SIMPLE.mulank[p.mulank] || "No description available.");
+    card('bhagyank', 'Bhagyank (Life Path Number)', p.bhagyank, SIMPLE.bhagyank[p.bhagyank] || "No description available.");
+    card('kua', 'Kua Number', p.kua, SIMPLE.kua[p.kua] || "No description available.");
+    card('nameNumber', 'Name Number', p.nameNumber, SIMPLE.nameNumber[p.nameNumber] || "No description available.");
+    card('heartDesire', "Heart's Desire Number", p.heartDesire, HEART_DESIRE_SIMPLE[p.heartDesire] || "No description available.");
+    card('soulUrge', "Outer Persona Number", p.soulUrge, OUTER_PERSONA_SIMPLE[p.soulUrge] || "No description available.");
+
+    // External influences, if the person filled them in
+    const EXT_LABELS = { house: 'House / Flat Number', car1: 'Vehicle Number Plate (Car)', car2: '2nd Vehicle Number (Bike/Scooty)', phone1: 'Phone Number', phone2: '2nd Phone Number', phone3: '3rd Phone Number' };
+    ['house', 'car1', 'car2', 'phone1', 'phone2', 'phone3'].forEach(key => {
+        if (p[key]) {
+            card('externalCompatibility', EXT_LABELS[key] + ' Vibration', p[key],
+                `This number's energy tends to be described as: ${ {1:"pioneering and independent",2:"peaceful and cooperative",3:"social and creative",4:"stable and structured",5:"active and changeable",6:"warm and nurturing",7:"quiet and reflective",8:"ambitious and prosperous",9:"generous and idealistic"}[safeDigit(p[key])] }.`);
+        }
+    });
+
+    // Lucky Dashboard
+    const LUCKY = {
+        1: { colors: "Gold, Yellow, Orange", dates: "1, 10, 19, 28", gems: "Ruby", avoid: "Black, Dark Blue" },
+        2: { colors: "White, Silver, Pale Green", dates: "2, 11, 20, 29", gems: "Pearl, Moonstone", avoid: "Red, Dark Black" },
+        3: { colors: "Yellow, Purple, Pink", dates: "3, 12, 21, 30", gems: "Yellow Sapphire", avoid: "Dark Blue, Black" },
+        4: { colors: "Blue, Gray, Silver", dates: "4, 13, 22, 31", gems: "Hessonite", avoid: "Pure Red, Black" },
+        5: { colors: "Green, Light Blue, White", dates: "5, 14, 23", gems: "Emerald", avoid: "Dark Red, Black" },
+        6: { colors: "White, Light Blue, Pink", dates: "6, 15, 24", gems: "Diamond, White Sapphire", avoid: "Yellow, Black" },
+        7: { colors: "Light Green, White", dates: "7, 16, 25", gems: "Cat's Eye", avoid: "Dark Colors" },
+        8: { colors: "Blue, Black, Dark Gray", dates: "8, 17, 26", gems: "Blue Sapphire", avoid: "Red, Yellow" },
+        9: { colors: "Red, Coral, Pink", dates: "9, 18, 27", gems: "Red Coral", avoid: "Black, Dark Green" }
+    };
+    const lucky = LUCKY[safeDigit(p.mulank)] || LUCKY[1];
+    const luckyPanel = document.createElement('div');
+    luckyPanel.className = 'panel';
+    luckyPanel.innerHTML = `<h2 style="margin-bottom:1rem;">Your Everyday Lucky Picks</h2>
+        <div class="elem-card">
+            <p><strong>Dates that suit you:</strong> ${lucky.dates}</p>
+            <p style="margin-top:0.5rem;"><strong>Colors that suit you:</strong> ${lucky.colors}</p>
+            <p style="margin-top:0.5rem;"><strong>Colors to go easy on:</strong> ${lucky.avoid}</p>
+            <p style="margin-top:0.5rem;"><strong>Gemstone linked to your number:</strong> ${lucky.gems}</p>
+        </div>`;
+    el.appendChild(luckyPanel);
+
+    // Name Correction
+    const relRoot = getRelationType(p.mulank, p.nameNumber);
+    const relDestiny = getRelationType(p.bhagyank, p.nameNumber);
+    const correctionPanel = document.createElement('div');
+    correctionPanel.className = 'panel';
+    let correctionBody = '';
+    if (relRoot === 'enemy' || relDestiny === 'enemy') {
+        const fixes = generateNameFixes(p.fullName, p.mulank, p.bhagyank);
+        correctionBody = `<p>Your Name Number (${p.nameNumber}) does not sit comfortably with your Birth Number or Life Path Number. Some people choose to adjust the spelling of a name slightly to shift this number into better alignment. This is a personal choice, not a requirement.</p>`;
+        if (fixes.length) {
+            correctionBody += `<div class="elem-card" style="margin-top:1rem;"><div class="elem-title">A Few Concrete Options To Consider</div><ul style="padding-left:1.3rem; margin-top:0.6rem; line-height:2; color:var(--text-main);">
+                ${fixes.map(f => `<li><strong>${f.example}</strong> — shifts your Name Number to ${f.num}, a better fit.</li>`).join('')}
+            </ul></div>`;
+        }
+    } else {
+        correctionBody = `<p>Your Name Number (${p.nameNumber}) sits comfortably alongside your Birth Number and Life Path Number. There is no numeric reason to change how your name is spelled.</p>`;
+    }
+    correctionPanel.innerHTML = `<div class="elem-card-top">
+            <h2 style="margin:0;">Does Your Name Fit Your Numbers?</h2>
+        </div>
+        <div class="elem-desc" style="margin-top:1rem;">
+            Name vs Birth Number: <strong>${RELATION_WORD[relRoot]}</strong> &nbsp;|&nbsp; Name vs Life Path Number: <strong>${RELATION_WORD[relDestiny]}</strong>
+        </div>
+        ${correctionBody}`;
+    el.appendChild(correctionPanel);
+
+    // --- How Your Core Numbers Interact ---
+    const harmony = computeCoreHarmony(p.mulank, p.bhagyank, p.kua);
+    const interactPanel = document.createElement('div');
+    interactPanel.className = 'panel';
+    let interactHTML = `<div class="elem-card-top"><h2 style="margin:0;">How Your Core Numbers Interact</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('coreHarmony')">i</button></div>
+        <p class="sub" style="margin-top:0.5rem;">Each number above was read on its own. This looks at how they work together.</p>
+        <div class="trait-row" style="margin-top:1rem;">
+            <div class="trait-head">
+                <div class="trait-name">Core Harmony Score</div>
+                <div class="trait-pct">${harmony.score}%</div>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${harmony.score}%;"></div></div>
+            <div class="trait-desc">${CORE_HARMONY_LINES[harmony.band]}</div>
+        </div>`;
+    CORE_INTERACTION_PAIRS.forEach(pair => {
+        const text = describeCoreInteraction(p[pair.a], p[pair.b], pair.aLabel, pair.bLabel, pair.framing);
+        interactHTML += `<div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-title">${pair.aLabel} (${p[pair.a]}) & ${pair.bLabel} (${p[pair.b]})</div>
+            <div class="elem-desc">${text}</div>
+            ${saveButtonHTML(pair.aLabel + ' & ' + pair.bLabel, text, 'overview.html')}
+        </div>`;
+    });
+    interactPanel.innerHTML = interactHTML;
+    el.appendChild(interactPanel);
+
+    // Lo Shu grid
+    const gridPanel = document.createElement('div');
+    gridPanel.className = 'panel';
+    let gridHTML = `<div class="elem-card-top" style="margin-bottom:1rem;">
+            <div class="elem-title">Lo Shu Grid (Your Number Map)</div>
+            <button class="info-btn" aria-label="Learn more" onclick="openInfo('loShu')">i</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; max-width:280px; margin: 0 auto;">`;
+    const layout = [4,9,2,3,5,7,8,1,6];
+    layout.forEach(n => {
+        const count = p.gridCounts[n] || 0;
+        gridHTML += `<div style="border:1px solid var(--border-color); border-radius:8px; padding:0.9rem 0.4rem; text-align:center; background:${count ? '#ede9fe' : '#f8fafc'};">
+            <div style="font-size:1.1rem; font-weight:800; color:${count ? 'var(--accent-purple)' : '#cbd5e1'};">${n.toString().repeat(count) || '—'}</div>
+        </div>`;
+    });
+    gridHTML += `</div><p class="trait-desc" style="text-align:center; margin-top:1rem;">Numbers that repeat are natural strengths. A dash means that number is missing for you.</p>`;
+    gridPanel.innerHTML = gridHTML;
+    el.appendChild(gridPanel);
+
+    // What each number means for you: missing, normal, or repeated
+    const digitPanel = document.createElement('div');
+    digitPanel.className = 'panel';
+    let digitHTML = `<div class="elem-card-top"><h2 style="margin:0;">What Each Number Says About You</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('digitMeanings')">i</button></div>
+        <p class="sub" style="margin-top:0.5rem;">Every digit from 1 to 9 links to a personality quality. Whether it's missing, shows up once, or repeats changes how strongly that quality plays out in you.</p>`;
+    for (let n = 1; n <= 9; n++) {
+        const count = p.gridCounts[n] || 0;
+        const tier = digitMeaningTier(count);
+        const dm = DIGIT_MEANINGS[n];
+        const tierLabel = { missing: 'Missing', normal: 'Present Once', repeat: `Repeated ×${count}` }[tier];
+        const tierBand = { missing: 'level-Low', normal: 'level-Moderate', repeat: 'level-High' }[tier];
+        const text = dm[tier];
+        digitHTML += `<div class="elem-card">
+            <div class="elem-card-top">
+                <div class="elem-title">${dm.title} <span class="trait-band ${tierBand}">${tierLabel}</span></div>
+            </div>
+            <p class="trait-desc" style="margin-top:0.3rem;">Linked trait: <strong>${dm.trait}</strong></p>
+            <div class="elem-desc" style="margin-top:0.5rem;">${text}</div>
+            ${saveButtonHTML(dm.title + ' — ' + tierLabel, text, 'overview.html')}
+        </div>`;
+    }
+    digitPanel.innerHTML = digitHTML;
+    el.appendChild(digitPanel);
+
+    // Lo Shu Planes (strength groups) — full definitions with a mini position diagram
+    const planesPanel = document.createElement('div');
+    planesPanel.className = 'panel';
+    let planesHTML = `<div class="elem-card-top"><h2 style="margin:0;">Your Strength Groups (The 8 Planes)</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('loShuPlanes')">i</button></div>
+        <p class="sub" style="margin-top:0.5rem;">The grid can be read as 8 straight lines — 3 rows, 3 columns, and 2 diagonals. Each line is called a plane and covers one area of life.</p>`;
+    LOSHU_PLANES.forEach(pl => {
+        const present = pl.numbers.filter(n => p.gridCounts[n] > 0).length;
+        const status = present === 3 ? ['Complete','band-Low'] : present === 0 ? ['Inactive','band-High'] : ['Partial','band-Moderate'];
+        let miniGrid = '<div class="mini-grid">';
+        for (let i = 0; i < 9; i++) miniGrid += `<div class="${pl.cells.includes(i) ? 'on' : ''}"></div>`;
+        miniGrid += '</div>';
+        planesHTML += `<div class="elem-card" style="margin-bottom:1rem;">
+            <div class="plane-row">
+                ${miniGrid}
+                <div class="plane-text">
+                    <div class="elem-title">${pl.name} (${pl.numbers.join('-')}) <span class="trait-band ${status[1]}">${status[0]}</span></div>
+                    <div class="elem-desc" style="margin-top:0.4rem;">${pl.definition}</div>
+                    <p class="trait-desc" style="margin-top:0.5rem;">${pl.meaning}</p>
+                </div>
+            </div>
+        </div>`;
+    });
+    planesPanel.innerHTML = planesHTML;
+    el.appendChild(planesPanel);
+
+    // Missing number remedies
+    const REMEDIES = {
+        1: "Build confidence: speak up in small moments and practise making quick decisions.",
+        2: "Build patience: practise listening fully before responding in conversations.",
+        3: "Build expression: try writing, speaking, or any creative outlet regularly.",
+        4: "Build routine: keep your space tidy and break big tasks into small steps.",
+        5: "Build flexibility: try one small new thing each week to stay open to change.",
+        6: "Build connection: make time for family or close friends without distraction.",
+        7: "Build reflection: spend quiet time alone regularly, even just 10 minutes.",
+        8: "Build financial habits: track your spending and set clear money goals.",
+        9: "Build perspective: volunteer or help with a cause bigger than yourself."
+    };
+    const missing = [1,2,3,4,5,6,7,8,9].filter(n => !(p.gridCounts[n] > 0));
+    const remedyPanel = document.createElement('div');
+    remedyPanel.className = 'panel';
+    let remedyHTML = `<h2 style="margin-bottom:1rem;">Numbers You Can Still Grow</h2>`;
+    if (missing.length === 0) {
+        remedyHTML += `<p class="elem-desc">Every number from 1 to 9 shows up somewhere in your chart — a rare, well-rounded spread.</p>`;
+    } else {
+        remedyHTML += missing.map(n => `<div class="elem-card"><div class="elem-title">Missing ${n}</div><div class="elem-desc">${REMEDIES[n]}</div></div>`).join('');
+    }
+    remedyPanel.innerHTML = remedyHTML;
+    el.appendChild(remedyPanel);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Path</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-life">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html" class="active">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your <span>Life Path</span> Over Time</h1>
+        <p>The bigger eras, milestones, and lessons your numbers point to.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+    const pc = computePinnaclesChallenges(p.month, p.day, p.year);
+    const age1 = 36 - safeDigit(p.bhagyank);
+
+    // --- Pinnacles & Challenges ---
+    const pcPanel = document.createElement('div');
+    pcPanel.className = 'panel';
+    let pcHTML = `<div class="elem-card-top"><h2 style="margin:0;">Four Eras Of Your Life</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('pinnaclesChallenges')">i</button></div>`;
+    const eras = [
+        [`Ages 0–${age1}`, pc.pin1, pc.chal1],
+        [`Ages ${age1+1}–${age1+9}`, pc.pin2, pc.chal2],
+        [`Ages ${age1+10}–${age1+18}`, pc.pin3, pc.chal3],
+        [`Ages ${age1+19} onward`, pc.pin4, pc.chal4]
+    ];
+    eras.forEach(([label, pin, chal]) => {
+        const eraText = `This tends to be ${PINNACLE_SIMPLE[pin] || 'a distinctive personal period'}. Main challenge: ${CHALLENGE_SIMPLE[chal] !== undefined ? CHALLENGE_SIMPLE[chal] : CHALLENGE_SIMPLE[0]}.`;
+        pcHTML += `<div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-title">${label}</div>
+            <div class="elem-desc">This tends to be ${PINNACLE_SIMPLE[pin] || 'a distinctive personal period'}.<br><br>
+            <strong>Main challenge:</strong> ${CHALLENGE_SIMPLE[chal] !== undefined ? CHALLENGE_SIMPLE[chal] : CHALLENGE_SIMPLE[0]}.</div>
+            ${saveButtonHTML(label, eraText, 'life-path.html')}
+        </div>`;
+    });
+    pcPanel.innerHTML = pcHTML;
+    el.appendChild(pcPanel);
+
+    // --- Turning points ---
+    const tpPanel = document.createElement('div');
+    tpPanel.className = 'panel';
+    tpPanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Ages To Watch</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('turningPoints')">i</button></div>
+        <div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-desc">${TURNING_POINT_SIMPLE[safeDigit(p.bhagyank)] || 'No specific pattern found for this number.'}</div>
+        </div>`;
+    el.appendChild(tpPanel);
+
+    // --- Marriage / family timing ---
+    const today = new Date();
+    const py = personalYear(p.month, p.day, today.getFullYear());
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    let marriageText, familyText;
+    if ([2,3,6].includes(py)) {
+        const goodMonths = [];
+        for (let m = 1; m <= 12; m++) { if ([2,3,6].includes(personalMonth(py, m))) goodMonths.push(monthNames[m-1]); }
+        marriageText = { band: 'band-Low', text: `You're in a Personal Year ${py}, which tends to favour unions and commitment. The best-aligned months this year look like ${goodMonths.join(', ')}.` };
+    } else {
+        const years = [];
+        for (let i = 1; i <= 10; i++) { const cy = today.getFullYear() + i; if ([2,3,6].includes(personalYear(p.month, p.day, cy))) years.push(cy); }
+        marriageText = { band: 'band-Moderate', text: `Your current year isn't the strongest for this. The next more favourable years look like ${years.slice(0,2).join(' and ')}.` };
+    }
+    if ([3,6,9].includes(py)) {
+        const goodMonths = [];
+        for (let m = 1; m <= 12; m++) { if ([3,6,9].includes(personalMonth(py, m))) goodMonths.push(monthNames[m-1]); }
+        familyText = { band: 'band-Low', text: `You're in a Personal Year ${py}, a good window for family growth. The best-aligned months this year look like ${goodMonths.join(', ')}.` };
+    } else {
+        const years = [];
+        for (let i = 1; i <= 10; i++) { const cy = today.getFullYear() + i; if ([3,6,9].includes(personalYear(p.month, p.day, cy))) years.push(cy); }
+        familyText = { band: 'band-Moderate', text: `Your current year is more neutral for this. The next more favourable years look like ${years.slice(0,2).join(' and ')}.` };
+    }
+    const romantic = ROMANCE_SIMPLE[safeDigit(p.heartDesire)] || ROMANCE_SIMPLE[1];
+
+    const lifePanel = document.createElement('div');
+    lifePanel.className = 'panel';
+    lifePanel.innerHTML = `
+        <div class="elem-card-top"><h2 style="margin:0;">Relationships & Family Timing</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('eventTiming')">i</button></div>
+        <div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-title">${romantic.title}</div>
+            <div class="elem-desc">${romantic.text}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Marriage / Commitment Timing <span class="trait-band ${marriageText.band}">${marriageText.band === 'band-Low' ? 'Favourable Now' : 'Be Patient'}</span></div></div>
+            <div class="elem-desc">${marriageText.text}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Family Growth Timing <span class="trait-band ${familyText.band}">${familyText.band === 'band-Low' ? 'Favourable Now' : 'Be Patient'}</span></div></div>
+            <div class="elem-desc">${familyText.text}</div>
+        </div>`;
+    el.appendChild(lifePanel);
+
+    // --- Karmic debts ---
+    const upperName = p.fullName.toUpperCase().replace(/[^A-Z]/g, '');
+    let nameBaseSum = 0;
+    const presentNameNumbers = new Set();
+    for (let ch of upperName) { const v = chaldeanMap[ch] || 0; if (v > 0) { nameBaseSum += v; presentNameNumbers.add(v); } }
+    let destinyBaseSum = 0;
+    for (let ch of `${p.day}${p.month}${p.year}`) { const n = parseInt(ch, 10); if (!isNaN(n)) destinyBaseSum += n; }
+    const debtCandidates = [p.day, destinyBaseSum, nameBaseSum].filter(n => [13,14,16,19].includes(n));
+
+    const karmicPanel = document.createElement('div');
+    karmicPanel.className = 'panel';
+    let karmicHTML = `<div class="elem-card-top"><h2 style="margin:0;">Karmic Debts & Lessons</h2><button class="info-btn" aria-label="Learn more" onclick="openInfo('karmicDebt')">i</button></div>`;
+    if (debtCandidates.length > 0) {
+        [...new Set(debtCandidates)].forEach(d => {
+            karmicHTML += `<div class="elem-card" style="margin-top:1rem;"><div class="elem-title">Debt Number ${d}</div><div class="elem-desc">${KARMIC_DEBT_SIMPLE[d]}</div></div>`;
+        });
+    } else {
+        karmicHTML += `<p class="elem-desc" style="margin-top:1rem;">None of the classic karmic debt numbers (13, 14, 16, 19) turned up in your core numbers.</p>`;
+    }
+    const missingLessons = [1,2,3,4,5,6,7,8,9].filter(n => !presentNameNumbers.has(n));
+    karmicHTML += `<div class="elem-card-top" style="margin-top:1.5rem;"><div class="elem-title">Karmic Lessons</div><button class="info-btn" aria-label="Learn more" onclick="openInfo('karmicLesson')">i</button></div>`;
+    if (missingLessons.length > 0) {
+        karmicHTML += missingLessons.map(n => `<div class="elem-card"><div class="elem-title">Missing ${n}</div><div class="elem-desc">${KARMIC_LESSON_SIMPLE[n]}</div></div>`).join('');
+    } else {
+        karmicHTML += `<p class="elem-desc">Your name contains every number from 1 to 9 — no missing lessons here.</p>`;
+    }
+    karmicPanel.innerHTML = karmicHTML;
+    el.appendChild(karmicPanel);
+
+    // --- Significance panel: what PY / PM / PD mean, shown once up top ---
+    const nowDate = new Date();
+    const nowPy = personalYear(p.month, p.day, nowDate.getFullYear());
+    const nowPm = personalMonth(nowPy, nowDate.getMonth() + 1);
+    const nowPd = personalDayNum(nowPm, nowDate.getDate());
+    const sigPanel = document.createElement('div');
+    sigPanel.className = 'panel';
+    sigPanel.innerHTML = `
+        <h2 style="margin-bottom:0.3rem;">Understanding Year, Month & Day Numbers</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">The timeline below stacks three layers: a Personal Year sets the big theme, a Personal Month narrows it down, and a Personal Day is the specific reading for one date.</p>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Year <span class="num">${nowPy}</span> (right now)</div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalYearNum')">i</button></div>
+            <div class="elem-desc">Right now, ${YEAR_ENERGY[nowPy]}.</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Month <span class="num">${nowPm}</span> (right now)</div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalMonthNum')">i</button></div>
+            <div class="elem-desc">${MONTH_ENERGY[nowPm]}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-card-top"><div class="elem-title">Personal Day <span class="num">${nowPd}</span> (today)</div><button class="info-btn" aria-label="Learn more" onclick="openInfo('personalDay')">i</button></div>
+            <div class="elem-desc">${PD_CORE[nowPd]}</div>
+        </div>
+    `;
+    el.appendChild(sigPanel);
+
+    // --- 31-Year Timeline (5 years back, this year, and 25 years ahead) ---
+    const PERIOD_THEME = {1:"New beginnings",2:"Patience & partnership",3:"Growth & expression",4:"Hard work & structure",5:"Change & freedom",6:"Family & responsibility",7:"Reflection & study",8:"Achievement & power",9:"Completion & release"};
+    const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const startYear = nowDate.getFullYear() - 5;
+
+    const timelinePanel = document.createElement('div');
+    timelinePanel.className = 'panel';
+    timelinePanel.innerHTML = `<h2 style="margin-bottom:0.4rem;">Your 31-Year Timeline</h2>
+        <p class="sub" style="margin-bottom:1.2rem;">Open a year, then a month, to see that month as a real calendar. Today's Personal Year, Month, and Day are all marked. Tap any date for its own unique reading.</p>
+        <div id="timelineRoot"></div>`;
+    el.appendChild(timelinePanel);
+    const timelineRoot = timelinePanel.querySelector('#timelineRoot');
+
+    for (let i = 0; i < 31; i++) {
+        const year = startYear + i;
+        const py = personalYear(p.month, p.day, year);
+        const isCurrentYear = year === nowDate.getFullYear();
+        const yearDetails = document.createElement('details');
+        yearDetails.className = 'timeline-year';
+        if (isCurrentYear) yearDetails.open = true;
+        yearDetails.innerHTML = `<summary>${year}${isCurrentYear ? ' — Current Year' : ''} · Personal Year ${py}: ${PERIOD_THEME[py]} <span>▾</span></summary>
+            <div class="timeline-body timeline-month-list"></div>`;
+        let monthsBuilt = false;
+        function buildMonths() {
+            if (monthsBuilt) return;
+            monthsBuilt = true;
+            const monthList = yearDetails.querySelector('.timeline-month-list');
+            for (let mo = 1; mo <= 12; mo++) {
+                const pmVal = personalMonth(py, mo);
+                const isCurrentMonth = isCurrentYear && (mo === nowDate.getMonth() + 1);
+                const monthDetails = document.createElement('details');
+                monthDetails.className = 'timeline-month';
+                if (isCurrentMonth) monthDetails.open = true;
+                monthDetails.innerHTML = `<summary>${MONTH_NAMES[mo-1]}${isCurrentMonth ? ' — Current Month' : ''} · Personal Month ${pmVal}: ${PERIOD_THEME[pmVal]} <span>▾</span></summary>
+                    <div class="timeline-body cal-holder"></div>`;
+                let calBuilt = false;
+                function buildCal() {
+                    if (calBuilt) return;
+                    calBuilt = true;
+                    const holder = monthDetails.querySelector('.cal-holder');
+                    holder.innerHTML = buildCalendarHTML(year, mo, p);
+                    bindCalendarClicks(holder);
+                }
+                monthDetails.addEventListener('toggle', function() { if (monthDetails.open) buildCal(); });
+                if (isCurrentMonth) buildCal();
+                monthList.appendChild(monthDetails);
+            }
+        }
+        yearDetails.addEventListener('toggle', function() { if (yearDetails.open) buildMonths(); });
+        if (isCurrentYear) buildMonths();
+        timelineRoot.appendChild(yearDetails);
+    }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Check Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-personality">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html" class="active">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Self-Check <span>Quiz</span></h1>
+        <p>Answer honestly, then see how your own sense of yourself compares to what your numbers say.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+    const answers = {};
+    let current = 0;
+
+    const quizPanel = document.createElement('div');
+    quizPanel.className = 'panel';
+    quizPanel.innerHTML = `
+        <div class="quiz-progress-track"><div class="quiz-progress-fill" id="quizProgress" style="width:0%;"></div></div>
+        <div id="quizBody" aria-live="polite"></div>
+    `;
+    el.appendChild(quizPanel);
+
+    function renderQuestion() {
+        const body = document.getElementById('quizBody');
+        if (current >= QUIZ_QUESTIONS.length) {
+            renderResults();
+            return;
+        }
+        const q = QUIZ_QUESTIONS[current];
+        document.getElementById('quizProgress').style.width = Math.round((current / QUIZ_QUESTIONS.length) * 100) + '%';
+        let html = `<div class="quiz-q">
+            <div class="prompt">Question ${current + 1} of ${QUIZ_QUESTIONS.length}</div>
+            <p style="margin-bottom:1rem;">${q.prompt}</p>`;
+        q.options.forEach((opt, i) => {
+            html += `<button type="button" class="quiz-opt" data-pts="${opt.pts}">${opt.text}</button>`;
+        });
+        html += `</div>`;
+        body.innerHTML = html;
+        body.querySelectorAll('.quiz-opt').forEach(btn => {
+            btn.addEventListener('click', function() {
+                answers[q.trait] = parseInt(btn.dataset.pts, 10);
+                current++;
+                renderQuestion();
+            });
+        });
+    }
+
+    function renderResults() {
+        document.getElementById('quizProgress').style.width = '100%';
+        const quizScores = computeQuizScores(answers);
+        const body = document.getElementById('quizBody');
+        let html = `<h2 style="margin-bottom:0.4rem;">Your Numbers vs. Your Own Sense Of Yourself</h2>
+            <p class="sub" style="margin-bottom:1.4rem;">Neither side is "more correct" — differences are often the most interesting part. A big gap usually means either your numbers are picking up something subtle, or your own self-view has room others don't see yet.</p>`;
+        Object.keys(quizScores).forEach(traitKey => {
+            const numTrait = p.traits.find(t => t.key === traitKey);
+            if (!numTrait) return;
+            const quizPct = quizScores[traitKey];
+            const gap = Math.abs(quizPct - numTrait.pct);
+            let gapNote = gap <= 15 ? "Your self-view and your numbers agree closely here." :
+                gap <= 35 ? "There's a moderate gap here — worth a moment of reflection." :
+                "There's a big gap here — either your numbers caught something you don't consciously notice, or this trait may express itself differently than the general pattern suggests.";
+            html += `<div class="elem-card">
+                <div class="elem-title">${numTrait.label}</div>
+                <div style="display:flex; gap:1.5rem; margin-top:0.8rem; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:140px;">
+                        <div class="trait-desc" style="margin-bottom:0.3rem;">Your Numbers</div>
+                        <div class="bar-track"><div class="bar-fill" style="width:${numTrait.pct}%;"></div></div>
+                        <div style="font-weight:800; margin-top:0.3rem;">${numTrait.pct}%</div>
+                    </div>
+                    <div style="flex:1; min-width:140px;">
+                        <div class="trait-desc" style="margin-bottom:0.3rem;">Your Quiz Answer</div>
+                        <div class="bar-track"><div class="bar-fill" style="width:${quizPct}%; background:linear-gradient(90deg, var(--accent-blue), var(--accent-gold));"></div></div>
+                        <div style="font-weight:800; margin-top:0.3rem;">${quizPct}%</div>
+                    </div>
+                </div>
+                <p class="trait-desc" style="margin-top:0.8rem;">${gapNote}</p>
+            </div>`;
+        });
+        html += `<button class="btn small" style="margin-top:1rem;" onclick="location.reload()">Retake The Quiz</button>`;
+        body.innerHTML = html;
+    }
+
+    renderQuestion();
+}
+</script>
+</body>
+</html>

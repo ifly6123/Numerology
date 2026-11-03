@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personality Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-personality">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html" class="active">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Your <span>Personality</span> Profile</h1>
+        <p>A percentage scale for each trait, worked out from your birth date and name.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+
+    // Data-richness note: more digits in the chart = a steadier read
+    const totalDigits = Object.values(p.gridCounts).reduce((a, b) => a + b, 0);
+    let richnessNote, richnessBand;
+    if (totalDigits >= 16) { richnessNote = "Your chart has a rich spread of digits, so these percentages are drawn from a good amount of data — treat them as a fairly steady read."; richnessBand = 'band-Low'; }
+    else if (totalDigits >= 10) { richnessNote = "Your chart has a moderate spread of digits — a reasonably steady read, though a few traits may shift a little as your name or details change."; richnessBand = 'band-Moderate'; }
+    else { richnessNote = "Your chart has a lighter spread of digits, so treat these percentages as a general direction rather than a precise, fixed score."; richnessBand = 'band-High'; }
+
+    const introPanel = document.createElement('div');
+    introPanel.className = 'panel';
+    introPanel.innerHTML = `
+        <div class="elem-card-top">
+            <h2 style="margin:0;">How To Read This Page</h2>
+            <button class="info-btn" aria-label="Learn more" onclick="openInfo('overallPersonality')">i</button>
+        </div>
+        <p class="sub" style="margin-top:0.6rem;">Each bar below is a percentage, not a grade. A high number simply means that trait shows up often in how you act. A low number means it shows up rarely. Tap the small "i" next to any trait to see what it means, what it can look like in real life, and one small thing to try.</p>
+        <div class="elem-card" style="margin-top:1rem;">
+            <div class="elem-card-top"><div class="elem-title">Data Confidence <span class="trait-band ${richnessBand}">${richnessBand === 'band-Low' ? 'Strong' : richnessBand === 'band-Moderate' ? 'Moderate' : 'Light'}</span></div></div>
+            <div class="elem-desc">${richnessNote}</div>
+        </div>
+    `;
+    el.appendChild(introPanel);
+
+    const barsPanel = document.createElement('div');
+    barsPanel.className = 'panel';
+    let barsHTML = '<h2 style="margin-bottom:1.4rem;">Trait Breakdown</h2>';
+    p.traits.forEach(t => {
+        const bandClass = 'level-' + t.band;
+        const bandText = { Low: 'Low', Moderate: 'Moderate', High: 'High', VeryHigh: 'Very High' }[t.band];
+        const line = (TRAIT_LINES[t.key] && TRAIT_LINES[t.key][t.band]) || '';
+        barsHTML += `
+        <div class="trait-row">
+            <div class="trait-head">
+                <div class="trait-name">${t.label}
+                    <span class="trait-band ${bandClass}">${bandText}</span>
+                    <button class="info-btn" style="width:22px;height:22px;font-size:0.75rem;" aria-label="Learn more about this trait" onclick="openTraitInfo('${t.key}', '${t.label.replace(/'/g,"\\'")}')">i</button>
+                </div>
+                <div class="trait-pct">${t.pct}%</div>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${t.pct}%;"></div></div>
+            <div class="trait-desc">${line}</div>
+        </div>`;
+    });
+    barsPanel.innerHTML = barsHTML;
+    el.appendChild(barsPanel);
+
+    // Overall narrative — pick top 3 and bottom 2 traits and describe in varied language
+    const sorted = [...p.traits].sort((a, b) => b.pct - a.pct);
+    const top = sorted.slice(0, 3);
+    const bottom = sorted.slice(-2);
+
+    const openers = [
+        "Looking at the full picture,",
+        "Taken together, your results suggest that",
+        "Across your traits, a clear pattern shows up:"
+    ];
+    const opener = openers[(p.mulank + p.bhagyank) % openers.length];
+
+    let narrative = `${opener} your strongest tendencies are <strong>${top[0].label}</strong> (${top[0].pct}%), <strong>${top[1].label}</strong> (${top[1].pct}%), and <strong>${top[2].label}</strong> (${top[2].pct}%). `;
+    narrative += `These are the traits most likely to shape how people experience you day to day. `;
+    narrative += `On the other end, <strong>${bottom[0].label}</strong> (${bottom[0].pct}%) and <strong>${bottom[1].label}</strong> (${bottom[1].pct}%) show up the least for you, which is not a flaw — it just means these are not your natural default settings. `;
+
+    // A tailored practical note using anger/ego/empathy combo since those were specifically requested
+    const anger = p.traits.find(t => t.key === 'anger_general');
+    const ego = p.traits.find(t => t.key === 'ego');
+    const empathy = p.traits.find(t => t.key === 'empathy');
+    const pleaser = p.traits.find(t => t.key === 'people_pleasing');
+
+    if (anger.pct >= 55 && ego.pct >= 55) {
+        narrative += `Because both your temper and your need to be right run high, disagreements can escalate quickly for you. Pausing before responding could help more than usual.`;
+    } else if (anger.pct >= 55 && empathy.pct >= 55) {
+        narrative += `You feel things strongly and you also feel for others strongly, so your frustration usually comes from caring, not from indifference.`;
+    } else if (pleaser.pct >= 55 && ego.pct <= 40) {
+        narrative += `You tend to keep the peace rather than push your own view, which keeps relationships smooth but can mean your own needs get missed.`;
+    } else if (empathy.pct >= 55 && anger.pct <= 40) {
+        narrative += `You stay calm easily and read people well, which usually makes you someone others feel comfortable opening up to.`;
+    } else {
+        narrative += `No single trait dominates your profile — you shift your response depending on the situation more than most.`;
+    }
+
+    const narrPanel = document.createElement('div');
+    narrPanel.className = 'panel';
+    narrPanel.innerHTML = `<h2>Your Personality, In A Few Lines</h2><p style="margin-top:0.8rem; font-size:1rem; line-height:1.75;">${narrative}</p>${saveButtonHTML('My Personality Summary', narrative.replace(/<[^>]+>/g, ''), 'personality.html')}`;
+    el.appendChild(narrPanel);
+
+    // --- Hidden Soul Architecture: first vowel + hidden passion number ---
+    const upperName = p.fullName.toUpperCase().replace(/[^A-Z]/g, '');
+    const vowels = ['A','E','I','O','U'];
+    let firstVowel = '';
+    for (let ch of upperName) { if (vowels.includes(ch)) { firstVowel = ch; break; } }
+    const vowelText = FIRST_VOWEL_SIMPLE[firstVowel] || "You process sudden stress in a fairly unique, individual way.";
+
+    const freq = {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+    for (let ch of upperName) { const v = chaldeanMap[ch]; if (v) freq[v]++; }
+    let hiddenPassion = 1, maxFreq = 0;
+    for (let i = 1; i <= 9; i++) { if (freq[i] > maxFreq) { maxFreq = freq[i]; hiddenPassion = i; } }
+
+    const soulPanel = document.createElement('div');
+    soulPanel.className = 'panel';
+    soulPanel.innerHTML = `
+        <h2 style="margin-bottom:1.2rem;">Hidden Patterns In Your Name</h2>
+        <div class="elem-card">
+            <div class="elem-title">Your First Reaction To Stress</div>
+            <div class="elem-desc">${vowelText}</div>
+        </div>
+        <div class="elem-card">
+            <div class="elem-title">Hidden Passion Number: ${hiddenPassion}</div>
+            <div class="elem-desc">${HEART_DESIRE_SIMPLE[hiddenPassion] || ''} This is the number that repeats the most in your name — often a talent or desire you don't show everyone.</div>
+        </div>`;
+    el.appendChild(soulPanel);
+
+    // --- Trait Combinations ---
+    const combos = matchTraitCombos(p.traits);
+    if (combos.length) {
+        const comboPanel = document.createElement('div');
+        comboPanel.className = 'panel';
+        let comboHTML = `<h2 style="margin-bottom:0.4rem;">Trait Combinations</h2>
+            <p class="sub" style="margin-bottom:1.2rem;">Reading each trait alone only tells part of the story. These are the meaningful pairings that show up in your specific profile.</p>`;
+        combos.forEach(c => {
+            comboHTML += `<div class="elem-card">
+                <div class="elem-title">${c.title}</div>
+                <div class="elem-desc">${c.text}</div>
+                ${saveButtonHTML(c.title, c.text, 'personality.html')}
+            </div>`;
+        });
+        comboPanel.innerHTML = comboHTML;
+        el.appendChild(comboPanel);
+    }
+
+    // --- What Changed Since Last Time (trend view) ---
+    let previousTraits = null;
+    try { previousTraits = JSON.parse(localStorage.getItem('npPreviousTraits') || 'null'); } catch (e) {}
+    if (previousTraits && previousTraits.length) {
+        const deltas = p.traits.map(t => {
+            const old = previousTraits.find(o => o.key === t.key);
+            return old ? { label: t.label, delta: t.pct - old.pct, oldPct: old.pct, newPct: t.pct } : null;
+        }).filter(d => d && d.delta !== 0);
+        if (deltas.length) {
+            const sorted = [...deltas].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+            const trendPanel = document.createElement('div');
+            trendPanel.className = 'panel';
+            let trendHTML = `<h2 style="margin-bottom:0.4rem;">What Changed Since Last Time</h2>
+                <p class="sub" style="margin-bottom:1.2rem;">Your profile was recalculated. Here's how your trait percentages shifted since the last calculation.</p>`;
+            sorted.slice(0, 6).forEach(d => {
+                const arrow = d.delta > 0 ? '▲' : '▼';
+                const color = d.delta > 0 ? '#b91c1c' : '#15803d';
+                trendHTML += `<div class="elem-card">
+                    <div class="elem-title">${d.label} <span style="color:${color};">${arrow} ${Math.abs(d.delta)}%</span></div>
+                    <div class="elem-desc">Went from ${d.oldPct}% to ${d.newPct}%.</div>
+                </div>`;
+            });
+            trendPanel.innerHTML = trendHTML;
+            el.appendChild(trendPanel);
+        }
+    }
+}
+</script>
+</body>
+</html>

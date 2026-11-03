@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family & Friends</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body class="theme-compat">
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<nav class="topnav">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="overview.html">Numerology Profile</a>
+    <a href="personality.html">Personality Profile</a>
+    <a href="career.html">Career Fit</a>
+    <a href="compatibility.html">Compatibility</a>
+    <a href="life-path.html">Life Path</a>
+    <a href="health.html">Health & Body</a>
+    <a href="rhythms.html">Daily Rhythms</a>
+    <a href="daily.html">Daily Guidance</a>
+</nav>
+<nav class="topnav" style="margin-top:0.6rem; margin-bottom:1.8rem; opacity:0.9;">
+    <a href="index.html">Start Over</a>
+    <a href="quiz.html">Self-Check Quiz</a>
+    <a href="family.html" class="active">Family & Friends</a>
+    <a href="glossary.html">Numbers Glossary</a>
+    <a href="mydata.html">My Data</a>
+</nav>
+
+<div class="container" id="app">
+    <div class="brand-header">
+        <h1>Family <span>& Friends</span></h1>
+        <p>Save people you check often, so you're not retyping details every time.</p>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+const p = requireProfileOrRedirect();
+if (p) {
+    const el = document.getElementById('app');
+
+    const formPanel = document.createElement('div');
+    formPanel.className = 'panel';
+    formPanel.innerHTML = `
+        <h2 style="margin-bottom:1rem;">Add Someone</h2>
+        <div class="field"><label for="famName">Name</label><input type="text" id="famName" placeholder="e.g., Mom, Alex, Priya"></div>
+        <div class="grid-2">
+            <div class="field"><label for="famDob">Date of Birth</label><input type="date" id="famDob"></div>
+            <div class="field"><label for="famGender">Gender (for Kua Number)</label>
+                <select id="famGender"><option value="male">Male</option><option value="female">Female</option></select>
+            </div>
+        </div>
+        <button class="btn small" id="famAddBtn">Add To My List</button>
+        <p aria-live="polite" id="famErr" class="error-msg" style="display:none;"></p>
+    `;
+    el.appendChild(formPanel);
+
+    const listPanel = document.createElement('div');
+    listPanel.className = 'panel';
+    listPanel.innerHTML = `<h2 style="margin-bottom:1rem;">Your Saved People</h2><div id="famList"></div>`;
+    el.appendChild(listPanel);
+
+    function renderList() {
+        const family = loadFamily();
+        const container = document.getElementById('famList');
+        if (!family.length) {
+            container.innerHTML = `<p class="sub">No one saved yet. Add someone above to get started.</p>`;
+            return;
+        }
+        let html = '';
+        family.forEach(f => {
+            const compat = computeCompatibilityScore(p.mulank, p.bhagyank, p.kua, f.mulank, f.bhagyank, f.kua);
+            const fGrid = f.gridCounts || calculateGridCounts(f.day, f.month, f.year);
+            let digitsHTML = '';
+            for (let n = 1; n <= 9; n++) {
+                const count = fGrid[n] || 0;
+                const tier = digitMeaningTier(count);
+                const dm = DIGIT_MEANINGS[n];
+                const tierLabel = { missing: 'Missing', normal: 'Present Once', repeat: `Repeated ×${count}` }[tier];
+                const tierBand = { missing: 'level-Low', normal: 'level-Moderate', repeat: 'level-High' }[tier];
+                digitsHTML += `<div class="elem-card" style="margin-top:0.6rem;">
+                    <div class="elem-card-top"><div class="elem-title" style="font-size:0.92rem;">${dm.title} <span class="trait-band ${tierBand}">${tierLabel}</span></div></div>
+                    <p class="trait-desc" style="margin-top:0.3rem;">${dm[tier]}</p>
+                </div>`;
+            }
+            html += `<div class="family-card" style="flex-direction:column; align-items:stretch;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+                    <div>
+                        <div class="elem-title">${f.name}</div>
+                        <div class="trait-desc">Birth ${f.mulank} · Life Path ${f.bhagyank} · Kua ${f.kua}</div>
+                        <div style="margin-top:0.5rem;"><span class="trait-band band-${compat.band}">${compat.score}% compatible with you</span></div>
+                    </div>
+                    <button class="family-remove" data-id="${f.id}">Remove</button>
+                </div>
+                <details style="margin-top:1rem;">
+                    <summary style="cursor:pointer; font-weight:700; font-size:0.85rem; color:var(--accent-purple);">View Their Number Breakdown</summary>
+                    ${digitsHTML}
+                </details>
+            </div>`;
+        });
+        container.innerHTML = html;
+        container.querySelectorAll('.family-remove').forEach(btn => {
+            btn.addEventListener('click', function() {
+                deleteFamilyMember(btn.dataset.id);
+                renderList();
+            });
+        });
+
+        // Populate the "Compare Any Two" dropdowns whenever the list re-renders
+        const selA = document.getElementById('compareA');
+        const selB = document.getElementById('compareB');
+        if (selA && selB) {
+            const options = ['<option value="__me__">Me</option>'].concat(family.map(f => `<option value="${f.id}">${f.name}</option>`));
+            selA.innerHTML = options.join('');
+            selB.innerHTML = options.join('');
+        }
+    }
+
+    document.getElementById('famAddBtn').addEventListener('click', function() {
+        const name = document.getElementById('famName').value.trim();
+        const dob = document.getElementById('famDob').value;
+        const gender = document.getElementById('famGender').value;
+        const err = document.getElementById('famErr');
+        if (!name || !dob) { err.textContent = 'Please fill in a name and date of birth.'; err.style.display = 'block'; return; }
+        err.style.display = 'none';
+        const [y, m, d] = dob.split('-').map(v => parseInt(v, 10));
+        addFamilyMember(name, d, m, y, gender);
+        document.getElementById('famName').value = '';
+        document.getElementById('famDob').value = '';
+        renderList();
+    });
+
+    // --- Compare Any Two (doesn't have to involve you) ---
+    const comparePanel = document.createElement('div');
+    comparePanel.className = 'panel';
+    comparePanel.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Compare Any Two People</h2>
+        <p class="sub" style="margin-bottom:1rem;">Check compatibility between any two saved people — doesn't have to include you.</p>
+        <div class="grid-2">
+            <div class="field"><label for="compareA">First Person</label><select id="compareA"></select></div>
+            <div class="field"><label for="compareB">Second Person</label><select id="compareB"></select></div>
+        </div>
+        <button class="btn small" id="compareBtn">Compare Them</button>
+        <div aria-live="polite" id="compareResult" style="margin-top:1.2rem;"></div>
+    `;
+    el.appendChild(comparePanel);
+
+    function getPersonById(id) {
+        if (id === '__me__') return { name: 'You', mulank: p.mulank, bhagyank: p.bhagyank, kua: p.kua };
+        return loadFamily().find(f => f.id === id);
+    }
+    document.getElementById('compareBtn').addEventListener('click', function() {
+        const idA = document.getElementById('compareA').value;
+        const idB = document.getElementById('compareB').value;
+        const box = document.getElementById('compareResult');
+        if (!idA || !idB) { box.innerHTML = '<p class="error-msg">Please select two people.</p>'; return; }
+        if (idA === idB) { box.innerHTML = '<p class="error-msg">Please pick two different people.</p>'; return; }
+        const A = getPersonById(idA), B = getPersonById(idB);
+        if (!A || !B) { box.innerHTML = '<p class="error-msg">Could not find one of those people.</p>'; return; }
+        const compat = computeCompatibilityScore(A.mulank, A.bhagyank, A.kua, B.mulank, B.bhagyank, B.kua);
+        box.innerHTML = `<div class="elem-card">
+            <div class="trait-row">
+                <div class="trait-head">
+                    <div class="trait-name">${A.name} & ${B.name}</div>
+                    <div class="trait-pct">${compat.score}%</div>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:${compat.score}%;"></div></div>
+                <div class="trait-desc">${COMPAT_SCORE_LINES[compat.band]}</div>
+            </div>
+            ${saveButtonHTML(A.name + ' & ' + B.name + ': ' + compat.score + '%', COMPAT_SCORE_LINES[compat.band], 'family.html')}
+        </div>`;
+    });
+
+    renderList();
+}
+</script>
+</body>
+</html>
