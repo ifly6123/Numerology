@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>(function(){try{var t=localStorage.getItem('npTheme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Numerology & Personality Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+<div class="container">
+    <div class="brand-header">
+        <h1>Your <span>Numbers</span>, In Plain Language</h1>
+        <p>Enter your details once. Every page after this explains what your numbers mean and why.</p>
+    </div>
+
+    <div class="panel">
+        <h2>Start Here</h2>
+        <p class="sub">We only use this to calculate your numbers. Nothing is sent anywhere — it stays on your device.</p>
+
+        <form id="npForm">
+            <div class="field">
+                <label for="fullName">Full Name (as on birth certificate)</label>
+                <input type="text" id="fullName" placeholder="e.g., John Michael Doe" required>
+            </div>
+            <div class="grid-2">
+                <div class="field">
+                    <label for="dob">Date of Birth</label>
+                    <input type="date" id="dob" required>
+                </div>
+                <div class="field">
+                    <label for="gender">Gender (used only for the Kua Number)</label>
+                    <select id="gender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+            </div>
+            <p id="errMsg" class="error-msg" style="display:none;"></p>
+            <button type="submit" class="btn gold">Calculate My Profile</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Optional Extras</h2>
+        <p class="sub">Fill these in only if you want deeper compatibility results. Leave anything blank to skip it.</p>
+        <div class="grid-2">
+            <div class="field">
+                <label for="partnerName">Partner's Full Name</label>
+                <input type="text" id="partnerName" placeholder="Optional">
+            </div>
+            <div class="field">
+                <label for="partnerDob">Partner's Date of Birth</label>
+                <input type="date" id="partnerDob">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="partnerGender">Partner's Gender (for their Kua Number)</label>
+                <select id="partnerGender"><option value="male">Male</option><option value="female">Female</option></select>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="house">House / Flat Number</label>
+                <input type="text" id="house" placeholder="e.g. 14B or 123">
+            </div>
+            <div class="field">
+                <label for="car1">Vehicle Number Plate (Car)</label>
+                <input type="text" id="car1" placeholder="e.g. 8492">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="car2">2nd Vehicle Number (Bike / Scooty)</label>
+                <input type="text" id="car2" placeholder="Optional">
+            </div>
+            <div class="field">
+                <label for="phone1">Phone Number</label>
+                <input type="text" id="phone1" placeholder="e.g. 987-654-3210">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="phone2">2nd Phone Number</label>
+                <input type="text" id="phone2" placeholder="Optional">
+            </div>
+            <div class="field">
+                <label for="phone3">3rd Phone Number</label>
+                <input type="text" id="phone3" placeholder="Optional">
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>What You'll Get</h2>
+        <p class="sub">No confusing jargon. Every result below has a "Know more" button that explains it simply.</p>
+        <ul style="padding-left: 1.2rem; color: var(--text-light); line-height: 2;">
+            <li><strong>Numerology Profile</strong> — your core numbers explained in plain words</li>
+            <li><strong>Personality Profile</strong> — a percentage scale for traits like anger, ego, and empathy</li>
+            <li><strong>Career Fit</strong> — the kind of work environment that suits your style</li>
+            <li><strong>Compatibility</strong> — how your number matches with someone else's</li>
+            <li><strong>Daily Guidance</strong> — a simple focus for today</li>
+        </ul>
+    </div>
+
+    <div class="panel" id="restorePanel" style="display:none;">
+        <h2>Already Used This Before?</h2>
+        <p class="sub">If you have a backup file from "My Data", restore it here instead of starting over.</p>
+        <div style="display:flex; gap:0.8rem; flex-wrap:wrap; align-items:center;">
+            <input type="file" id="restoreFile" accept="application/json">
+            <button class="btn small" id="restoreBtn">Restore Backup</button>
+        </div>
+        <p aria-live="polite" id="restoreMsg" style="margin-top:0.8rem; font-size:0.9rem;"></p>
+    </div>
+
+    <div class="panel" style="text-align:center;">
+        <p class="sub" style="margin-bottom:0.8rem;">Just curious about what a number means, without building a full profile?</p>
+        <a class="btn small" href="glossary.html">Browse The Numbers Glossary</a>
+    </div>
+</div>
+
+<script src="engine-data.js"></script>
+<script src="engine-content.js"></script>
+<script src="engine-ui.js"></script>
+<script>
+document.getElementById('restorePanel').style.display = 'block';
+document.getElementById('restoreBtn').addEventListener('click', function() {
+    const fileInput = document.getElementById('restoreFile');
+    const msg = document.getElementById('restoreMsg');
+    if (!fileInput.files || !fileInput.files[0]) { msg.textContent = 'Please choose a backup file first.'; return; }
+    importAllData(fileInput.files[0], function(success) {
+        if (success) {
+            msg.textContent = 'Restored! Taking you to your Dashboard...';
+            setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
+        } else {
+            msg.textContent = "That file couldn't be read. Please check it's the right backup file.";
+        }
+    });
+});
+
+// If this page was opened via a shareable sync link, offer to load it
+const syncedProfile = checkForSyncLink();
+if (syncedProfile) {
+    const banner = document.createElement('div');
+    banner.className = 'panel';
+    banner.style.border = '2px solid var(--accent-purple)';
+    banner.innerHTML = `
+        <h2 style="margin-bottom:0.4rem;">Load Profile From Link?</h2>
+        <p class="sub" style="margin-bottom:1rem;">This link contains a saved profile for <strong>${syncedProfile.fullName}</strong>. Loading it will replace anything currently saved in this browser.</p>
+        <button class="btn small gold" id="loadSyncBtn">Load This Profile</button>
+        <button class="btn small" id="dismissSyncBtn" style="margin-left:0.6rem;">No Thanks</button>
+    `;
+    document.querySelector('.container').prepend(banner);
+    document.getElementById('loadSyncBtn').addEventListener('click', function() {
+        saveProfile(syncedProfile);
+        window.location.href = 'dashboard.html';
+    });
+    document.getElementById('dismissSyncBtn').addEventListener('click', function() { banner.remove(); });
+}
+
+document.getElementById('npForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value.trim();
+    const dobVal = document.getElementById('dob').value;
+    const gender = document.getElementById('gender').value;
+    const errBox = document.getElementById('errMsg');
+
+    if (!fullName || !dobVal) {
+        errBox.textContent = "Please fill in your name and date of birth.";
+        errBox.style.display = 'block';
+        return;
+    }
+
+    const [year, month, day] = dobVal.split('-').map(v => parseInt(v, 10));
+
+    const mulank = reduceToSingleDigit(day, true);
+    const bhagyank = reduceToSingleDigit(`${day}${month}${year}`, true);
+    const kua = calculateKua(year, gender);
+    const names = calculateNameNumbers(fullName);
+
+    // Optional extras
+    const partnerName = document.getElementById('partnerName').value.trim();
+    const partnerDob = document.getElementById('partnerDob').value;
+    const partnerGender = document.getElementById('partnerGender').value;
+    const houseVal = reduceAlphanumeric(document.getElementById('house').value.trim());
+    const car1Val = reduceAlphanumeric(document.getElementById('car1').value.trim());
+    const car2Val = reduceAlphanumeric(document.getElementById('car2').value.trim());
+    const phone1Val = reduceAlphanumeric(document.getElementById('phone1').value.trim());
+    const phone2Val = reduceAlphanumeric(document.getElementById('phone2').value.trim());
+    const phone3Val = reduceAlphanumeric(document.getElementById('phone3').value.trim());
+
+    // Build the grid using every digit available, same approach as a full chart
+    const safeMulank = safeDigit(mulank);
+    const safeBhagyank = safeDigit(bhagyank);
+    const safeName = safeDigit(names.nameNumber);
+    const safeHeart = safeDigit(names.heartDesire);
+    const safeSoul = safeDigit(names.soulUrge);
+    const extraDigits = `${safeMulank}${safeBhagyank}${kua}${safeName}${safeHeart}${safeSoul}${houseVal}${car1Val}${car2Val}${phone1Val}${phone2Val}${phone3Val}`;
+    const gridCounts = calculateGridCounts(day, month, year, extraDigits);
+    const traits = computeTraits(gridCounts, mulank, bhagyank, kua);
+
+    const profile = {
+        fullName, day, month, year, gender,
+        mulank, bhagyank, kua,
+        nameNumber: names.nameNumber,
+        heartDesire: names.heartDesire,
+        soulUrge: names.soulUrge,
+        gridCounts, traits,
+        partnerName, partnerDob, partnerGender,
+        house: houseVal, car1: car1Val, car2: car2Val, phone1: phone1Val, phone2: phone2Val, phone3: phone3Val,
+        calculatedAt: new Date().toISOString()
+    };
+
+    // Keep a snapshot of the previous traits (if any) so Personality can show "what changed"
+    const oldProfile = loadProfile();
+    if (oldProfile && oldProfile.traits && oldProfile.traits.length) {
+        try { localStorage.setItem('npPreviousTraits', JSON.stringify(oldProfile.traits)); } catch (e) {}
+    }
+
+    saveProfile(profile);
+    window.location.href = 'dashboard.html';
+});
+</script>
+</body>
+</html>
